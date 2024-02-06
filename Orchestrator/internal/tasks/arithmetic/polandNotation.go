@@ -2,10 +2,17 @@ package arithmetic
 
 import (
 	"errors"
+	"log/slog"
 	"strings"
 
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/validator"
 )
+
+type Expression interface {
+	GetExpression() string
+	SetID(uint64)
+	Result() []string
+}
 
 var (
 	errValidation     error = errors.New("Ошибка валидации данных")
@@ -15,9 +22,11 @@ var (
 type PolandNotation struct {
 	expression string
 	result     []string
+	id         uint64
 }
 
 func NewPolandNotation(expression string) (*PolandNotation, error) {
+	slog.Info("Получены данные для польской нотации:", "expression", expression)
 	if expression == "" {
 		return nil, errValidation
 	}
@@ -100,6 +109,14 @@ func (p *PolandNotation) createResult() error {
 	}
 	p.result = result
 	return nil
+}
+
+func (p *PolandNotation) GetExpression() string {
+	return p.expression
+}
+
+func (p *PolandNotation) SetID(id uint64) {
+	p.id = id
 }
 
 func (p *PolandNotation) Result() []string {

@@ -39,6 +39,7 @@ func expressionHandler(w http.ResponseWriter, r *http.Request) {
 			Result() []string
 		}
 		data, err := io.ReadAll(r.Body)
+		slog.Info(string(data))
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return

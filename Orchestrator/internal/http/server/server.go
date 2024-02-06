@@ -15,14 +15,15 @@ func Run(ctx context.Context) (func(context.Context) error, error) {
 	if err != nil {
 		return nil, err
 	}
+	serveMux = handlers.Decorate(serveMux, logMiddleware())
 	// Инициализируем HTTP сервер
 	httpServer := &http.Server{Addr: ":8080", Handler: serveMux}
 
-	slog.Info("Server started")
+	slog.Info("Http сервер запущен на 8080")
 
 	go func() {
 		if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			slog.Error("Server error", "error", err)
+			slog.Error("Ошибка сервера:", "error", err)
 		}
 	}()
 
@@ -35,7 +36,7 @@ func logMiddleware() func(next http.Handler) http.Handler {
 			start := time.Now()
 			next.ServeHTTP(w, r)
 			duration := time.Since(start)
-			slog.Info("Request processed", "Method:", r.Method, "Path:", r.URL.Path, "Duration:", duration)
+			slog.Info("Запрос получен", "Метод:", r.Method, "Путь:", r.URL.Path, "Продолжительность:", duration)
 		})
 	}
 }
