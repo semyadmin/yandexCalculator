@@ -19,7 +19,7 @@ func Run(ctx context.Context) (func(context.Context) error, error) {
 	// Инициализируем HTTP сервер
 	httpServer := &http.Server{Addr: ":8080", Handler: serveMux}
 
-	slog.Info("Http сервер запущен на 8080")
+	slog.Info("Http сервер запущен на порту 8080")
 
 	go func() {
 		if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
