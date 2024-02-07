@@ -6,12 +6,14 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/config"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/http/server/handlers"
+	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/tasks/queue"
 )
 
-func Run(ctx context.Context) (func(context.Context) error, error) {
+func Run(ctx context.Context, config *config.Config, queue *queue.LockFreeQueue) (func(context.Context) error, error) {
 	// Инициализируем маршрутизатор
-	serveMux, err := handlers.NewServeMux()
+	serveMux, err := handlers.NewServeMux(config, queue)
 	if err != nil {
 		return nil, err
 	}

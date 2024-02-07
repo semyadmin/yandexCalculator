@@ -33,6 +33,7 @@ type Storage struct {
 func New() *Storage {
 	return &Storage{
 		data:   make(map[string]*list.Element),
+		exists: make(map[uint64]string),
 		queue:  list.New(),
 		nextID: 0,
 	}

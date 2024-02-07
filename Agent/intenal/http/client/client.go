@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"errors"
+	"io"
 	"log/slog"
 	"net"
 	"time"
@@ -43,15 +44,16 @@ func (c *Client) Start() error {
 	var err error
 	n := 0
 	n, err = c.conn.Read(buf)
-	if err != nil {
+	if !errors.Is(io.EOF, err) && err != nil {
 		slog.Error("не удалось прочитать выражение от оркестратора", "ошибка", err, "агент", c.id)
 		return err
 	}
 	expression := string(buf[:n])
+	slog.Info("получено выражение от оркестратора", "выражение", expression, "агент", c.id)
 	n = 0
 	for {
 		n, err = c.conn.Read(buf)
-		if err != nil {
+		if !errors.Is(io.EOF, err) && err != nil {
 			slog.Error("не удалось прочитать конфигурацию выражений от оркестратора", "ошибка", err, "агент", c.id)
 			return err
 		}

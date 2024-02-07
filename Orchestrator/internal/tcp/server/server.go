@@ -4,21 +4,29 @@ import (
 	"fmt"
 	"log/slog"
 	"net"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/config"
+	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/tasks/queue"
 )
 
+type Expression interface {
+	GetExpression() string
+	SetID(uint64)
+	Result() []string
+}
 type server struct {
 	wg         sync.WaitGroup
 	listener   net.Listener
 	shutdown   chan struct{}
 	connection chan net.Conn
 	config     *config.Config
+	queue      *queue.LockFreeQueue
 }
 
-func NewServer(address string, config *config.Config) (*server, error) {
+func NewServer(address string, config *config.Config, q *queue.LockFreeQueue) (*server, error) {
 	listener, err := net.Listen("tcp", address)
 	if err != nil {
 		return nil, fmt.Errorf("Невозможно запустить сервер по %s: %w", address, err)
@@ -29,6 +37,7 @@ func NewServer(address string, config *config.Config) (*server, error) {
 		shutdown:   make(chan struct{}),
 		connection: make(chan net.Conn),
 		config:     config,
+		queue:      q,
 	}, nil
 }
 
@@ -66,13 +75,38 @@ func (s *server) handleConnection(conn net.Conn) {
 	defer conn.Close()
 
 	// Add your logic for handling incoming connections here
-	fmt.Fprintf(conn, "Добро пожаловать на TCP сервер!\n")
-	buf := make([]byte, 8)
+	slog.Info("Установлено новое соединение", "Клиент", conn.RemoteAddr())
+	var exp Expression
+	var ok bool
+	for {
+		exp, ok = s.queue.Dequeue()
+		if ok {
+			slog.Info("Получено новое выражение", "Выражение", exp.GetExpression())
+			break
+		}
+		time.Sleep(1 * time.Second)
+	}
+	str := strings.Join(exp.Result(), " ")
+	slog.Info("Результат выражения для отправки", "Выражение:", str)
+	n, err := conn.Write([]byte(str))
+	if err != nil && n < len(str) {
+		slog.Info("Клиент отключился", "ошибка:", err)
+		return
+	}
+	slog.Info("Отправлено", "Выражение:", str)
+	buf := make([]byte, 512)
 	for {
 		conn.SetDeadline(time.Now().Add(30 * time.Second))
-		_, err := conn.Read(buf)
+		n, err := conn.Read(buf)
 		if err != nil {
 			slog.Info("Клиент отключился", "ошибка", err)
+			break
+		}
+		if string(buf[:n]) == "ping" {
+			continue
+		}
+		if string(buf[:n]) == "zero" {
+			slog.Info("Деление на ноль")
 			break
 		}
 	}
@@ -102,24 +136,3 @@ func (s *server) Stop() {
 		return
 	}
 }
-
-//Пример
-/* func main() {
-	s, err := newServer(":8080")
-	if err != nil {
-	 fmt.Println(err)
-	 os.Exit(1)
-	}
-
-	s.Start()
-
-	// Wait for a SIGINT or SIGTERM signal to gracefully shut down the server
-	sigChan := make(chan os.Signal, 1)
-	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
-	<-sigChan
-
-	fmt.Println("Shutting down server...")
-	s.Stop()
-	fmt.Println("Server stopped.")
-   }
-*/
