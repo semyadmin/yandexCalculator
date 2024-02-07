@@ -3,8 +3,10 @@ package client
 import (
 	"encoding/binary"
 	"encoding/json"
+	"errors"
 	"log/slog"
 	"net"
+	"time"
 
 	"github.com/adminsemy/yandexCalculator/Agent/intenal/config"
 	"github.com/adminsemy/yandexCalculator/Agent/intenal/task/polandNotation"
@@ -58,15 +60,43 @@ func (c *Client) Start() error {
 	configExpression := &config.ConfigExpression{}
 	json.Unmarshal(buf[:n], configExpression)
 
-	polandNotation := polandNotation.New(expression, configExpression)
-	if err := polandNotation.Calculate(); err != nil {
-		slog.Error("ошибка вычисления выражения", "ошибка", err, "агент", c.id)
-		return err
+	newPolandNotation := polandNotation.New(expression, configExpression)
+	done := make(chan struct{})
+	errorChan := make(chan error, 1)
+	go func(errorChan chan error) {
+		defer close(done)
+		if err := newPolandNotation.Calculate(); err != nil {
+			slog.Error("ошибка вычисления выражения", "ошибка", err, "агент", c.id)
+			errorChan <- err
+		}
+	}(errorChan)
+label:
+	for {
+		select {
+		case <-done:
+			break label
+		case <-time.After(10 * time.Second):
+			n, err = c.conn.Write([]byte("ping"))
+			if err != nil || n < 4 {
+				slog.Error("не удалось записать результат вычисления выражения", "ошибка", err, "агент", c.id)
+				return err
+			}
+		}
 	}
+	err = <-errorChan
+	if errors.Is(polandNotation.ErrDivideByZero, err) {
+		n, err = c.conn.Write([]byte("zero"))
+		if err != nil || n < 4 {
+			slog.Error("не удалось записать результат вычисления выражения", "ошибка", err, "агент", c.id)
+			return err
+		}
+
+	}
+	close(errorChan)
 	ans := make([]byte, 8)
-	binary.LittleEndian.AppendUint64(ans, uint64(polandNotation.Result()))
-	_, err = c.conn.Write(ans)
-	if err != nil {
+	binary.LittleEndian.AppendUint64(ans, uint64(newPolandNotation.Result()))
+	n, err = c.conn.Write(ans)
+	if err != nil || n < len(ans) {
 		slog.Error("не удалось записать результат вычисления выражения", "ошибка", err, "агент", c.id)
 		return err
 	}
