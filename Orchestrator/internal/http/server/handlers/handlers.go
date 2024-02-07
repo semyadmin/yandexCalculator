@@ -55,7 +55,7 @@ func expressionHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		storage.Set(exp, "ok")
 		slog.Info("Выражение в польской нотации", "result", exp.Result())
-		dataInfo, err := storage.Get(exp.GetExpression())
+		dataInfo, err := storage.GeByExpression(exp.GetExpression())
 		if err != nil {
 			slog.Error("Проблема с DataInfo:", "error", err)
 			http.Error(w, err.Error(), http.StatusBadRequest)

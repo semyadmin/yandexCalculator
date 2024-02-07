@@ -24,6 +24,7 @@ type DataInfo struct {
 }
 type Storage struct {
 	data   map[string]*list.Element
+	exists map[uint64]string
 	queue  *list.List
 	mutex  sync.Mutex
 	nextID uint64
@@ -56,13 +57,23 @@ func (s *Storage) Set(data Expression, status string) {
 	}
 	newElement := s.queue.PushBack(newDataInfo)
 	s.data[data.GetExpression()] = newElement
+	s.exists[newDataInfo.Id] = data.GetExpression()
 }
 
-func (s *Storage) Get(expression string) (DataInfo, error) {
+func (s *Storage) GeByExpression(expression string) (DataInfo, error) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 	if data, ok := s.data[expression]; ok {
 		return data.Value.(DataInfo), nil
+	}
+	return DataInfo{}, errExpressionNotExists
+}
+
+func (s *Storage) GeById(id uint64) (DataInfo, error) {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	if data, ok := s.exists[id]; ok {
+		return s.GeByExpression(data)
 	}
 	return DataInfo{}, errExpressionNotExists
 }
