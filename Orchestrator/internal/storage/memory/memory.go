@@ -53,7 +53,6 @@ func (s *Storage) Set(data Expression, status string) {
 		TimeCreate: time.Now(),
 		TimeEnd:    time.Now(),
 		Status:     status,
-		// TODO set status and time end
 	}
 	newElement := s.queue.PushBack(newDataInfo)
 	s.data[data.GetExpression()] = newElement
