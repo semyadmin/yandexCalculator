@@ -17,7 +17,6 @@ func NewServeMux(config *config.Config, queue *queue.LockFreeQueue, storage *mem
 	// Регистрируем обработчики событий
 	patchToFront := "./frontend/build"
 	serveMux.Handle("/", http.FileServer(http.Dir(patchToFront)))
-	serveMux.HandleFunc("/hello", helloHandler)
 	serveMux.HandleFunc("/expression", expressionHandler(config, queue, storage))
 	return serveMux, nil
 }
@@ -29,10 +28,6 @@ func Decorate(next http.Handler, middleware ...func(http.Handler) http.Handler) 
 	}
 
 	return decorated
-}
-
-func helloHandler(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("Hello, World!"))
 }
 
 func expressionHandler(config *config.Config, queue *queue.LockFreeQueue, storage *memory.Storage) func(w http.ResponseWriter, r *http.Request) {
@@ -54,7 +49,7 @@ func expressionHandler(config *config.Config, queue *queue.LockFreeQueue, storag
 				http.Error(w, err.Error(), http.StatusBadRequest)
 				return
 			}
-			storage.Set(exp, "ok")
+			storage.Set(exp, "new")
 			queue.Enqueue(exp)
 			slog.Info("Выражение в польской нотации", "result", exp.Result())
 			dataInfo, err := storage.GeByExpression(exp.GetExpression())

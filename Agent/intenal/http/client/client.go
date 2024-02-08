@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/adminsemy/yandexCalculator/Agent/intenal/config"
@@ -16,110 +17,145 @@ import (
 var ErrNoData = errors.New("нет данных")
 
 type Client struct {
-	id   int
-	conn net.Conn
+	id     int
+	config *config.Config
 }
 
 func New(config *config.Config, id int) (*Client, error) {
-	conn, err := net.Dial("tcp", config.Host+":"+config.Port)
-	if err != nil {
-		slog.Error("не удалось подключиться к оркестратору", "ошибка", err, "агент", id)
-		return nil, err
-	}
-	slog.Info("успешное подключение к оркестратору", "оркестратор",
-		config.Host+":"+config.Port,
-		"агент", conn.LocalAddr().String(),
-	)
 	return &Client{
-		conn: conn,
-		id:   id,
+		id:     id,
+		config: config,
 	}, nil
 }
 
-func (c *Client) Close() error {
-	return c.conn.Close()
-}
-
+// Берем данные от оркестратора
 func (c *Client) Start() error {
-	defer c.Close()
+	address := c.config.Host + ":" + c.config.Port
+	conn, err := net.Dial("tcp", address)
+	defer conn.Close()
+	if err != nil {
+		slog.Error("не удалось подключиться к оркестратору", "ошибка", err, "агент", c.id)
+		return err
+	}
+	slog.Info("успешное подключение к оркестратору", "оркестратор", address, "агент", c.id)
 	buf := make([]byte, 256)
-	var err error
 	n := 0
-	n, err = c.conn.Read(buf)
+	n, err = conn.Read(buf)
 	if !errors.Is(io.EOF, err) && err != nil {
-		slog.Error("не удалось прочитать выражение от оркестратора", "ошибка", err, "агент", c.conn.LocalAddr().String())
+		slog.Error("не удалось прочитать выражение от оркестратора", "ошибка", err, "агент", c.id)
 		return err
 	}
 	expression := string(buf[:n])
 	if expression == "no_data" {
-		slog.Error("выражение от оркестратора не получено", "агент", c.conn.LocalAddr().String())
+		slog.Error("выражение от оркестратора не получено", "агент", c.id)
 		return ErrNoData
 	}
-	_, err = c.conn.Write([]byte("ok"))
+	_, err = conn.Write([]byte("ok"))
 	if err != nil {
 		slog.Error("связь с оркестратором потеряна ", "ошибка", err)
 		return err
 	}
-	slog.Info("получено выражение от оркестратора", "выражение", expression, "агент", c.conn.LocalAddr().String())
-	n, err = c.conn.Read(buf)
+	slog.Info("получено выражение от оркестратора", "выражение", expression, "агент", c.id)
+	n, err = conn.Read(buf)
 	if !errors.Is(io.EOF, err) && err != nil {
-		slog.Error("не удалось прочитать конфигурацию выражений от оркестратора", "ошибка", err, "агент", c.conn.LocalAddr().String())
+		slog.Error("не удалось прочитать конфигурацию выражений от оркестратора", "ошибка", err, "агент", conn.LocalAddr().String())
 		return err
 	}
-	_, err = c.conn.Write([]byte("ok"))
+	_, err = conn.Write([]byte("ok"))
 	if err != nil {
 		slog.Error("связь с оркестратором потеряна ", "ошибка", err)
 		return err
 	}
+	c.calculate(expression, buf[:n])
+	return nil
+}
 
+// Рассчитываем выражение
+func (c *Client) calculate(expression string, timeConf []byte) {
+	address := c.config.Host + ":" + c.config.Port
 	configExpression := &config.ConfigExpression{}
-	json.Unmarshal(buf[:n], configExpression)
-	slog.Info("Получена конфигурация времени от оркестратора", "конфигурация", configExpression, "агент", c.conn.LocalAddr().String())
-	newPolandNotation := polandNotation.New(expression, configExpression)
-	done := make(chan struct{})
-	defer close(done)
-	errorChan := make(chan error, 1)
-	go func(errorChan chan error, done chan struct{}) {
-		if err := newPolandNotation.Calculate(); err != nil {
-			slog.Error("ошибка вычисления выражения", "ошибка", err, "агент", c.conn.LocalAddr().String())
-			errorChan <- err
-			return
+	json.Unmarshal(timeConf, configExpression)
+	slog.Info("Получена конфигурация времени от оркестратора", "конфигурация", configExpression, "агент", c.id)
+	done := make(chan string)
+	go func() {
+		defer close(done)
+		array := strings.Split(expression, " ")
+		newPolandNotation := polandNotation.New(array[0], array[1:], configExpression)
+		for i, v := range newPolandNotation.Expression {
+			newPolandNotation.Calculate(v)
+			if v == "+" || v == "-" || v == "*" || v == "/" {
+				if newPolandNotation.Err != nil {
+					go c.sendResult("error", address)
+					return
+				}
+				asw := []string{}
+				asw = append(asw, newPolandNotation.Expression[:i]...)
+				for i := 0; i < len(newPolandNotation.Stack); i++ {
+					str := strconv.FormatFloat(newPolandNotation.Stack[i], 'f', -1, 64)
+					asw = append(asw, str)
+				}
+				if i == len(newPolandNotation.Expression)-1 {
+					go c.sendResult(strings.Join(asw, " "), address)
+					return
+				}
+				asw = append(asw, newPolandNotation.Expression[i+1:]...)
+				done <- strings.Join(asw, " ")
+			}
 		}
-		done <- struct{}{}
-	}(errorChan, done)
-
+	}()
 	for {
 		select {
-		case <-done:
-			ans := []byte{}
-			ans = append(ans, []byte(expression)...)
-			ans = append(ans, ' ')
-			res := strconv.Itoa(int(newPolandNotation.Result()))
-			ans = append(ans, []byte(res)...)
-			n, err = c.conn.Write(ans)
-			if err != nil || n < len(ans) {
-				slog.Error("не удалось записать результат вычисления выражения", "ошибка", err, "агент", c.conn.LocalAddr().String())
-				return err
+		case str, ok := <-done:
+			if !ok {
+				return
 			}
-			slog.Info("отправлен результат вычисления выражения", "результат", newPolandNotation.Result(), "агент", c.conn.LocalAddr().String())
-			return nil
-		case err := <-errorChan:
-			if errors.Is(polandNotation.ErrDivideByZero, err) {
-				n, err = c.conn.Write([]byte("zero"))
-				if err != nil || n < 4 {
-					slog.Error("не удалось записать результат вычисления выражения", "ошибка", err, "агент", c.conn.LocalAddr().String())
-					return err
-				}
-
+			conn, err := net.Dial("tcp", address)
+			defer conn.Close()
+			if err != nil {
+				slog.Error("не удалось подключиться к оркестратору", "ошибка", err, "агент", c.id)
+				break
 			}
-			return err
+			n, err := conn.Write([]byte(str))
+			if err != nil || n < len(str) {
+				slog.Error("не удалось записать результат вычисления выражения", "ошибка", err, "агент", c.id)
+				break
+			}
+			slog.Info("отправлен результат вычисления выражения", "результат", str, "агент", c.id)
+			break
 		case <-time.After(10 * time.Second):
-			n, err = c.conn.Write([]byte("ping"))
-			slog.Info("отправлен пинг", "агент", c.conn.LocalAddr().String())
+			conn, err := net.Dial("tcp", address)
+			defer conn.Close()
+			if err != nil {
+				slog.Error("не удалось подключиться к оркестратору", "ошибка", err, "агент", c.id)
+				break
+			}
+			n, err := conn.Write([]byte("ping"))
+			slog.Info("отправлен пинг", "агент", c.id)
 			if err != nil || n < 4 {
-				slog.Error("не удалось записать результат вычисления выражения", "ошибка", err, "агент", c.conn.LocalAddr().String())
-				return err
+				slog.Error("не удалось записать результат вычисления выражения", "ошибка", err, "агент", c.id)
+				break
 			}
 		}
+	}
+}
+
+// отправка конечного результата
+func (c *Client) sendResult(result string, address string) {
+	for {
+		conn, err := net.Dial("tcp", address)
+		defer conn.Close()
+		if err != nil {
+			slog.Error("не удалось подключиться к оркестратору", "ошибка", err, "агент", c.id)
+			time.Sleep(5 * time.Second)
+			continue
+		}
+		n, err := conn.Write([]byte(result))
+		if err != nil || n < len(result) {
+			slog.Error("не удалось записать результат вычисления выражения", "ошибка", err, "агент", c.id)
+			time.Sleep(5 * time.Second)
+			continue
+		}
+		slog.Info("отправлен результат вычисления выражения", "результат", result, "агент", c.id)
+		return
 	}
 }

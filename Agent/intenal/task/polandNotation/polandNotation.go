@@ -2,9 +2,7 @@ package polandNotation
 
 import (
 	"errors"
-	"log/slog"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/adminsemy/yandexCalculator/Agent/intenal/config"
@@ -16,64 +14,58 @@ var (
 )
 
 type PolandNotation struct {
-	expression string
-	result     int64
+	ID         string
+	Expression []string
+	Result     int64
 	config     *config.ConfigExpression
+	Stack      []float64
+	Err        error
 }
 
-func New(expression string, config *config.ConfigExpression) *PolandNotation {
+func New(id string, expression []string, config *config.ConfigExpression) *PolandNotation {
 	return &PolandNotation{
-		expression: expression,
+		ID:         id,
+		Expression: expression,
 		config:     config,
+		Stack:      make([]float64, 0),
+		Err:        nil,
 	}
 }
 
-func (p *PolandNotation) Calculate() error {
-	stack := make([]float64, 0)
-	str := strings.Split(p.expression, " ")
-	slog.Info("Старт вычисления выражения", "выражение", p.expression)
-	for _, v := range str {
-		if v == "+" || v == "-" || v == "*" || v == "/" {
-			if len(stack) < 2 {
-				return ErrValidation
-			}
-			right := stack[len(stack)-1]
-			stack = stack[:len(stack)-1]
-			left := stack[len(stack)-1]
-			stack = stack[:len(stack)-1]
-			switch v {
-			case "+":
-				time.Sleep(time.Duration(p.config.Plus) * time.Minute)
-				stack = append(stack, left+right)
-			case "-":
-				time.Sleep(time.Duration(p.config.Minus) * time.Minute)
-				stack = append(stack, left-right)
-			case "*":
-				time.Sleep(time.Duration(p.config.Multiply) * time.Minute)
-				stack = append(stack, left*right)
-			case "/":
-				if right == 0 {
-					return ErrDivideByZero
-				}
-				time.Sleep(time.Duration(p.config.Divide) * time.Minute)
-				stack = append(stack, left/right)
-			}
-		} else {
-			number, err := strconv.ParseFloat(v, 64)
-			if err != nil {
-				return err
-			}
-			stack = append(stack, number)
+func (p *PolandNotation) Calculate(v string) {
+	if v == "+" || v == "-" || v == "*" || v == "/" {
+		if len(p.Stack) < 2 {
+			p.Err = ErrValidation
+			return
 		}
+		right := p.Stack[len(p.Stack)-1]
+		p.Stack = p.Stack[:len(p.Stack)-1]
+		left := p.Stack[len(p.Stack)-1]
+		p.Stack = p.Stack[:len(p.Stack)-1]
+		switch v {
+		case "+":
+			time.Sleep(time.Duration(p.config.Plus) * time.Minute)
+			p.Stack = append(p.Stack, left+right)
+		case "-":
+			time.Sleep(time.Duration(p.config.Minus) * time.Minute)
+			p.Stack = append(p.Stack, left-right)
+		case "*":
+			time.Sleep(time.Duration(p.config.Multiply) * time.Minute)
+			p.Stack = append(p.Stack, left*right)
+		case "/":
+			if right == 0 {
+				p.Err = ErrDivideByZero
+				return
+			}
+			time.Sleep(time.Duration(p.config.Divide) * time.Minute)
+			p.Stack = append(p.Stack, left/right)
+		}
+	} else {
+		number, err := strconv.ParseFloat(v, 64)
+		if err != nil {
+			p.Err = err
+			return
+		}
+		p.Stack = append(p.Stack, number)
 	}
-	if len(stack) != 1 {
-		return ErrValidation
-	}
-	p.result = int64(stack[0])
-	slog.Info("Конец вычисления выражения", "результат", p.result)
-	return nil
-}
-
-func (p *PolandNotation) Result() int64 {
-	return p.result
 }
