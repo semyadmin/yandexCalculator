@@ -23,7 +23,7 @@ func main() {
 					continue
 				}
 				if err := client.Start(); err != nil {
-					continue
+					time.Sleep(1 * time.Second)
 				}
 			}
 		}(i)

@@ -11,16 +11,14 @@ import (
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/tasks/queue"
 )
 
-var storage = memory.New()
-
-func NewServeMux(config *config.Config, queue *queue.LockFreeQueue) (http.Handler, error) {
+func NewServeMux(config *config.Config, queue *queue.LockFreeQueue, storage *memory.Storage) (http.Handler, error) {
 	// Создам маршрутизатор
 	serveMux := http.NewServeMux()
 	// Регистрируем обработчики событий
 	patchToFront := "./frontend/build"
 	serveMux.Handle("/", http.FileServer(http.Dir(patchToFront)))
 	serveMux.HandleFunc("/hello", helloHandler)
-	serveMux.HandleFunc("/expression", expressionHandler(config, queue))
+	serveMux.HandleFunc("/expression", expressionHandler(config, queue, storage))
 	return serveMux, nil
 }
 
@@ -37,7 +35,7 @@ func helloHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("Hello, World!"))
 }
 
-func expressionHandler(config *config.Config, queue *queue.LockFreeQueue) func(w http.ResponseWriter, r *http.Request) {
+func expressionHandler(config *config.Config, queue *queue.LockFreeQueue, storage *memory.Storage) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodPost {
 			type Expression interface {

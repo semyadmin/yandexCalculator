@@ -11,6 +11,10 @@ type Config struct {
 	Host     string
 	HttpPort string
 	TCPPort  string
+	Plus     int
+	Minus    int
+	Multiply int
+	Divide   int
 }
 
 type ConfigExpression struct {
@@ -41,4 +45,11 @@ func New() *Config {
 		HttpPort: httpPort,
 		TCPPort:  tcpPort,
 	}
+}
+
+func (c *ConfigExpression) Init(conf *Config) {
+	c.Plus = conf.Plus
+	c.Minus = conf.Minus
+	c.Multiply = conf.Multiply
+	c.Divide = conf.Divide
 }

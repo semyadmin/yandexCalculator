@@ -8,12 +8,13 @@ import (
 
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/config"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/http/server/handlers"
+	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/storage/memory"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/tasks/queue"
 )
 
-func Run(ctx context.Context, config *config.Config, queue *queue.LockFreeQueue) (func(context.Context) error, error) {
+func Run(ctx context.Context, config *config.Config, queue *queue.LockFreeQueue, storage *memory.Storage) (func(context.Context) error, error) {
 	// Инициализируем маршрутизатор
-	serveMux, err := handlers.NewServeMux(config, queue)
+	serveMux, err := handlers.NewServeMux(config, queue, storage)
 	if err != nil {
 		return nil, err
 	}

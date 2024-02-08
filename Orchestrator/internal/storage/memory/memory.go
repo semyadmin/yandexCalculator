@@ -5,6 +5,9 @@ import (
 	"errors"
 	"sync"
 	"time"
+
+	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/config"
+	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/tasks/calculateDuration"
 )
 
 var errExpressionNotExists = errors.New("Выражение не существует")
@@ -28,18 +31,21 @@ type Storage struct {
 	queue  *list.List
 	mutex  sync.Mutex
 	nextID uint64
+	config *config.ConfigExpression
 }
 
-func New() *Storage {
+func New(config *config.ConfigExpression) *Storage {
 	return &Storage{
 		data:   make(map[string]*list.Element),
 		exists: make(map[uint64]string),
 		queue:  list.New(),
 		nextID: 0,
+		config: config,
 	}
 }
 
 func (s *Storage) Set(data Expression, status string) {
+	timeEnd := calculateDuration.Calc(data.Result(), s.config)
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 	if data, ok := s.data[data.GetExpression()]; ok {
@@ -53,7 +59,7 @@ func (s *Storage) Set(data Expression, status string) {
 		Expression: data,
 		Id:         s.nextID,
 		TimeCreate: time.Now(),
-		TimeEnd:    time.Now(),
+		TimeEnd:    time.Now().Add(time.Duration(timeEnd)),
 		Status:     status,
 	}
 	newElement := s.queue.PushBack(newDataInfo)

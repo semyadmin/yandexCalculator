@@ -43,19 +43,19 @@ func (p *PolandNotation) Calculate() error {
 			stack = stack[:len(stack)-1]
 			switch v {
 			case "+":
-				time.Sleep(time.Duration(p.config.Plus) * time.Millisecond)
+				time.Sleep(time.Duration(p.config.Plus) * time.Minute)
 				stack = append(stack, left+right)
 			case "-":
-				time.Sleep(time.Duration(p.config.Minus) * time.Millisecond)
+				time.Sleep(time.Duration(p.config.Minus) * time.Minute)
 				stack = append(stack, left-right)
 			case "*":
-				time.Sleep(time.Duration(p.config.Multiply) * time.Millisecond)
+				time.Sleep(time.Duration(p.config.Multiply) * time.Minute)
 				stack = append(stack, left*right)
 			case "/":
 				if right == 0 {
 					return ErrDivideByZero
 				}
-				time.Sleep(time.Duration(p.config.Divide) * time.Millisecond)
+				time.Sleep(time.Duration(p.config.Divide) * time.Minute)
 				stack = append(stack, left/right)
 			}
 		} else {
