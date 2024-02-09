@@ -3,15 +3,12 @@ package queue
 import (
 	"sync/atomic"
 	"unsafe"
+
+	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/tasks/arithmetic"
 )
 
-type Expression interface {
-	GetExpression() string
-	SetID(uint64)
-	Result() []string
-}
 type Node struct {
-	value Expression
+	value *arithmetic.SendInfo
 	next  *Node
 }
 
@@ -24,7 +21,7 @@ func NewLockFreeQueue() *LockFreeQueue {
 	return &LockFreeQueue{}
 }
 
-func (l *LockFreeQueue) Enqueue(value Expression) {
+func (l *LockFreeQueue) Enqueue(value *arithmetic.SendInfo) {
 	node := &Node{value: value}
 	for {
 		if atomic.LoadPointer(&l.tail) == nil {
@@ -49,7 +46,7 @@ func (l *LockFreeQueue) Enqueue(value Expression) {
 	}
 }
 
-func (l *LockFreeQueue) Dequeue() (Expression, bool) {
+func (l *LockFreeQueue) Dequeue() (*arithmetic.SendInfo, bool) {
 	var result *Node
 	for {
 		result = (*Node)(atomic.LoadPointer(&l.tail))

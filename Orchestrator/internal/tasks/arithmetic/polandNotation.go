@@ -3,8 +3,10 @@ package arithmetic
 import (
 	"errors"
 	"log/slog"
+	"strconv"
 	"strings"
 
+	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/config"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/validator"
 )
 
@@ -15,23 +17,38 @@ type Expression interface {
 }
 
 var (
-	errValidation     error = errors.New("Ошибка валидации данных")
+	ErrValidation     error = errors.New("Ошибка валидации данных")
 	errNullExpression error = errors.New("Выражение не может быть пустым")
+
+	ErrDivideByZero = errors.New("на ноль делить нельзя")
 )
 
 type PolandNotation struct {
-	expression string
+	Expression string
 	result     []string
 	id         uint64
+	Err        error
+	config     *config.Config
+	send       chan SendInfo
+	get        chan string
 }
 
-func NewPolandNotation(expression string) (*PolandNotation, error) {
+type SendInfo struct {
+	Id       uint64
+	Result   string
+	Deadline uint64
+}
+
+func NewPolandNotation(expression string, config *config.Config) (*PolandNotation, error) {
 	slog.Info("Получены данные для польской нотации:", "expression", expression)
 	if expression == "" {
-		return nil, errValidation
+		return nil, ErrValidation
 	}
 	p := &PolandNotation{
-		expression: expression,
+		Expression: expression,
+		config:     config,
+		send:       make(chan SendInfo),
+		get:        make(chan string),
 	}
 	err := p.createResult()
 	if err != nil {
@@ -41,9 +58,9 @@ func NewPolandNotation(expression string) (*PolandNotation, error) {
 }
 
 func (p *PolandNotation) createResult() error {
-	str := strings.ReplaceAll(p.expression, " ", "")
+	str := strings.ReplaceAll(p.Expression, " ", "")
 	if !validator.IsValid(str) {
-		return errValidation
+		return ErrValidation
 	}
 	result := make([]string, 0, len(str))
 	stack := make([]byte, 0, 10)
@@ -77,7 +94,7 @@ func (p *PolandNotation) createResult() error {
 		if operator == ')' {
 			closed++
 			if closed > opened {
-				return errValidation
+				return ErrValidation
 			}
 			for i := len(stack) - 1; i >= 0; i-- {
 				if stack[i] == '(' {
@@ -101,7 +118,7 @@ func (p *PolandNotation) createResult() error {
 		index++
 	}
 	if opened != closed {
-		return errValidation
+		return ErrValidation
 	}
 	for i := len(stack) - 1; i >= 0; i-- {
 		result = append(result, string(stack[i]))
@@ -112,13 +129,65 @@ func (p *PolandNotation) createResult() error {
 }
 
 func (p *PolandNotation) GetExpression() string {
-	return p.expression
+	return p.Expression
 }
 
 func (p *PolandNotation) SetID(id uint64) {
 	p.id = id
 }
 
-func (p *PolandNotation) Result() []string {
-	return p.result
+func (p *PolandNotation) Result() {
+	stack := make([]float64, 0, 10)
+	result := SendInfo{Id: p.id}
+	for _, v := range p.result {
+		if v == "+" || v == "-" || v == "*" || v == "/" {
+			if len(stack) < 2 {
+				p.Err = ErrValidation
+				return
+			}
+			right := stack[len(stack)-1]
+			stack = stack[:len(stack)-1]
+			left := stack[len(stack)-1]
+			stack = stack[:len(stack)-1]
+			switch v {
+			case "+":
+				result.Result = strconv.FormatFloat(left, 'f', -1, 64) + " + " + strconv.FormatFloat(right, 'f', -1, 64)
+				result.Deadline = uint64(p.config.Plus)
+			case "-":
+				result.Result = strconv.FormatFloat(left, 'f', -1, 64) + " - " + strconv.FormatFloat(right, 'f', -1, 64)
+				result.Deadline = uint64(p.config.Minus)
+			case "*":
+				result.Result = strconv.FormatFloat(left, 'f', -1, 64) + " * " + strconv.FormatFloat(right, 'f', -1, 64)
+				result.Deadline = uint64(p.config.Multiply)
+			case "/":
+				if right == 0 {
+					p.Err = ErrDivideByZero
+					return
+				}
+				result.Result = strconv.FormatFloat(left, 'f', -1, 64) + " / " + strconv.FormatFloat(right, 'f', -1, 64)
+				result.Deadline = uint64(p.config.Divide)
+			}
+		} else {
+			number, err := strconv.ParseFloat(v, 64)
+			if err != nil {
+				p.Err = err
+				return
+			}
+			stack = append(stack, number)
+			continue
+		}
+		// Отправляем данные для подсчета результата
+		p.send <- result
+		result := <-p.get
+		number, err := strconv.ParseFloat(result, 64)
+		if err != nil {
+			p.Err = err
+			return
+		}
+		stack = append(stack, number)
+	}
+	if len(stack) != 1 {
+		p.Err = ErrValidation
+		return
+	}
 }

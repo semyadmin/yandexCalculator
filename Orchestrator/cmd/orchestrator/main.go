@@ -17,7 +17,7 @@ func main() {
 	conf := config.New()
 	conf.Plus = 1
 	storage := memory.New(&config.ConfigExpression{})
-	newQueue := queue.NewLockFreeQueue()
+	newQueue := queue.NewMapQueue(queue.NewLockFreeQueue())
 	tcpServer, err := serverTCP.NewServer(":7777", conf, newQueue, storage)
 	if err != nil {
 		slog.Error("Ошибка запуска TCP/IP сервера:", "ошибка:", err)

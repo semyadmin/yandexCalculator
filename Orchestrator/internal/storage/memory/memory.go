@@ -4,25 +4,16 @@ import (
 	"container/list"
 	"errors"
 	"sync"
-	"time"
 
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/config"
-	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/tasks/calculateDuration"
+	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/tasks/arithmetic"
 )
 
 var errExpressionNotExists = errors.New("Выражение не существует")
 
-type Expression interface {
-	GetExpression() string
-	SetID(uint64)
-	Result() []string
-}
-
 type DataInfo struct {
-	Expression
+	Expression *arithmetic.PolandNotation
 	Id         uint64
-	TimeCreate time.Time
-	TimeEnd    time.Time
 	Status     string
 }
 type Storage struct {
@@ -44,8 +35,7 @@ func New(config *config.ConfigExpression) *Storage {
 	}
 }
 
-func (s *Storage) Set(data Expression, status string) {
-	timeEnd := calculateDuration.Calc(data.Result(), s.config)
+func (s *Storage) Set(data *arithmetic.PolandNotation, status string) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 	if data, ok := s.data[data.GetExpression()]; ok {
@@ -58,10 +48,9 @@ func (s *Storage) Set(data Expression, status string) {
 	newDataInfo := DataInfo{
 		Expression: data,
 		Id:         s.nextID,
-		TimeCreate: time.Now(),
-		TimeEnd:    time.Now().Add(time.Duration(timeEnd)),
 		Status:     status,
 	}
+	data.SetID(s.nextID)
 	newElement := s.queue.PushBack(newDataInfo)
 	s.data[data.GetExpression()] = newElement
 	s.exists[newDataInfo.Id] = data.GetExpression()

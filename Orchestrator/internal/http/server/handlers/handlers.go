@@ -11,7 +11,7 @@ import (
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/tasks/queue"
 )
 
-func NewServeMux(config *config.Config, queue *queue.LockFreeQueue, storage *memory.Storage) (http.Handler, error) {
+func NewServeMux(config *config.Config, queue *queue.MapQueue, storage *memory.Storage) (http.Handler, error) {
 	// Создам маршрутизатор
 	serveMux := http.NewServeMux()
 	// Регистрируем обработчики событий
@@ -30,7 +30,7 @@ func Decorate(next http.Handler, middleware ...func(http.Handler) http.Handler) 
 	return decorated
 }
 
-func expressionHandler(config *config.Config, queue *queue.LockFreeQueue, storage *memory.Storage) func(w http.ResponseWriter, r *http.Request) {
+func expressionHandler(config *config.Config, queue *queue.MapQueue, storage *memory.Storage) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodPost {
 			type Expression interface {
@@ -43,15 +43,14 @@ func expressionHandler(config *config.Config, queue *queue.LockFreeQueue, storag
 				http.Error(w, err.Error(), http.StatusBadRequest)
 				return
 			}
-			exp, err := arithmetic.NewPolandNotation(string(data))
+			exp, err := arithmetic.NewPolandNotation(string(data), config)
 			if err != nil {
 				slog.Error("Ошибка создания выражения:", "error", err)
 				http.Error(w, err.Error(), http.StatusBadRequest)
 				return
 			}
 			storage.Set(exp, "new")
-			queue.Enqueue(exp)
-			slog.Info("Выражение в польской нотации", "result", exp.Result())
+			slog.Info("Выражение в польской нотации", "result", exp.Expression)
 			dataInfo, err := storage.GeByExpression(exp.GetExpression())
 			if err != nil {
 				slog.Error("Проблема с DataInfo:", "error", err)
