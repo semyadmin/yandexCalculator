@@ -12,7 +12,6 @@ import (
 
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/config"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/storage/memory"
-	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/tasks/arithmetic"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/tasks/queue"
 )
 
@@ -78,17 +77,22 @@ func (s *server) handleConnections() {
 
 func (s *server) handleConnection(conn net.Conn) {
 	defer conn.Close()
-
-	// Add your logic for handling incoming connections here
-	slog.Info("Установлено новое соединение", "Клиент", conn.RemoteAddr())
 	buf := make([]byte, 512)
 	n, err := conn.Read(buf)
 	if !errors.Is(io.EOF, err) && err != nil {
 		slog.Info("Клиент отключился", "ошибка:", err)
 		return
 	}
+	if string(buf[:n]) == "result" {
+		n, err := conn.Read(buf)
+		if !errors.Is(io.EOF, err) && err != nil {
+			slog.Info("Клиент отключился", "ошибка:", err)
+			return
+		}
+		slog.Info("Результат операция получен", "результат:", string(buf[:n]))
+	}
 	if string(buf[:n]) == "new" {
-		var exp *arithmetic.SendInfo
+		var exp *queue.SendInfo
 		var ok bool
 		exp, ok = s.queue.Dequeue()
 		if !ok {
@@ -98,14 +102,22 @@ func (s *server) handleConnection(conn net.Conn) {
 			}
 			return
 		}
-		str := strconv.FormatUint(exp.Id, 10) + " " + exp.Result + " " + strconv.FormatUint(exp.Deadline, 10) + "\n"
+		slog.Info("Данные для отправки", "статус:", "data", "data", exp)
+		str := strconv.FormatUint(exp.Id, 10) + " " + exp.Result + " " + strconv.FormatUint(exp.Deadline, 10)
 		n, err = conn.Write([]byte(str))
 		if err != nil && n < len(str) {
 			slog.Info("Клиент отключился", "ошибка:", err)
 			s.queue.Enqueue(exp)
 			return
 		}
-		slog.Info("Отправлено", "Выражение:", str)
+		n, err := conn.Read(buf)
+		if !errors.Is(io.EOF, err) && err != nil {
+			slog.Info("Клиент отключился", "ошибка:", err)
+			return
+		}
+		if string(buf[:n]) == "ok" {
+			slog.Info("Операция отправлена агенту", "операция:", str)
+		}
 		return
 	}
 }

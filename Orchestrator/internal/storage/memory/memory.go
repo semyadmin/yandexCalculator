@@ -14,7 +14,6 @@ var errExpressionNotExists = errors.New("Выражение не существ�
 type DataInfo struct {
 	Expression *arithmetic.PolandNotation
 	Id         uint64
-	Status     string
 }
 type Storage struct {
 	data   map[string]*list.Element
@@ -40,7 +39,6 @@ func (s *Storage) Set(data *arithmetic.PolandNotation, status string) {
 	defer s.mutex.Unlock()
 	if data, ok := s.data[data.GetExpression()]; ok {
 		dataInfo := data.Value.(DataInfo)
-		dataInfo.Status = status
 		data.Value = dataInfo
 		return
 	}
@@ -48,9 +46,9 @@ func (s *Storage) Set(data *arithmetic.PolandNotation, status string) {
 	newDataInfo := DataInfo{
 		Expression: data,
 		Id:         s.nextID,
-		Status:     status,
 	}
 	data.SetID(s.nextID)
+	go data.Calculate()
 	newElement := s.queue.PushBack(newDataInfo)
 	s.data[data.GetExpression()] = newElement
 	s.exists[newDataInfo.Id] = data.GetExpression()

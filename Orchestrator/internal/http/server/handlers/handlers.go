@@ -37,20 +37,24 @@ func expressionHandler(config *config.Config, queue *queue.MapQueue, storage *me
 				Result() []string
 			}
 			data, err := io.ReadAll(r.Body)
-			slog.Info(string(data))
 			if err != nil {
 				slog.Error("Проблема с чтением данных:", "error", err)
 				http.Error(w, err.Error(), http.StatusBadRequest)
 				return
 			}
-			exp, err := arithmetic.NewPolandNotation(string(data), config)
+			exp, err := arithmetic.NewPolandNotation(string(data), config, queue)
+			if err != nil {
+				slog.Error("Пустое выражение:", "empty", err)
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				return
+			}
+			err = exp.CreateResult()
 			if err != nil {
 				slog.Error("Ошибка создания выражения:", "error", err)
 				http.Error(w, err.Error(), http.StatusBadRequest)
 				return
 			}
 			storage.Set(exp, "new")
-			slog.Info("Выражение в польской нотации", "result", exp.Expression)
 			dataInfo, err := storage.GeByExpression(exp.GetExpression())
 			if err != nil {
 				slog.Error("Проблема с DataInfo:", "error", err)

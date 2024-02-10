@@ -3,12 +3,10 @@ package queue
 import (
 	"sync/atomic"
 	"unsafe"
-
-	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/tasks/arithmetic"
 )
 
 type Node struct {
-	value *arithmetic.SendInfo
+	value *SendInfo
 	next  *Node
 }
 
@@ -21,7 +19,7 @@ func NewLockFreeQueue() *LockFreeQueue {
 	return &LockFreeQueue{}
 }
 
-func (l *LockFreeQueue) Enqueue(value *arithmetic.SendInfo) {
+func (l *LockFreeQueue) enqueue(value *SendInfo) {
 	node := &Node{value: value}
 	for {
 		if atomic.LoadPointer(&l.tail) == nil {
@@ -46,7 +44,7 @@ func (l *LockFreeQueue) Enqueue(value *arithmetic.SendInfo) {
 	}
 }
 
-func (l *LockFreeQueue) Dequeue() (*arithmetic.SendInfo, bool) {
+func (l *LockFreeQueue) dequeue() (*SendInfo, bool) {
 	var result *Node
 	for {
 		result = (*Node)(atomic.LoadPointer(&l.tail))

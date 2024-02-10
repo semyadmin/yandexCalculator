@@ -19,8 +19,7 @@ func main() {
 			for {
 				client, err := client.New(config, id)
 				if err != nil {
-					time.Sleep(10 * time.Second)
-					continue
+					break
 				}
 				if err := client.Start(); err != nil {
 					time.Sleep(1 * time.Second)

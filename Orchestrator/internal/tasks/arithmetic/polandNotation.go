@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/config"
+	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/tasks/queue"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/validator"
 )
 
@@ -29,17 +30,14 @@ type PolandNotation struct {
 	id         uint64
 	Err        error
 	config     *config.Config
-	send       chan SendInfo
+	queue      *queue.MapQueue
 	get        chan string
+	stack      []float64
+	answer     float64
+	isAnswer   bool
 }
 
-type SendInfo struct {
-	Id       uint64
-	Result   string
-	Deadline uint64
-}
-
-func NewPolandNotation(expression string, config *config.Config) (*PolandNotation, error) {
+func NewPolandNotation(expression string, config *config.Config, queue *queue.MapQueue) (*PolandNotation, error) {
 	slog.Info("Получены данные для польской нотации:", "expression", expression)
 	if expression == "" {
 		return nil, ErrValidation
@@ -47,17 +45,15 @@ func NewPolandNotation(expression string, config *config.Config) (*PolandNotatio
 	p := &PolandNotation{
 		Expression: expression,
 		config:     config,
-		send:       make(chan SendInfo),
+		queue:      queue,
 		get:        make(chan string),
+		stack:      make([]float64, 0, 10),
 	}
-	err := p.createResult()
-	if err != nil {
-		return nil, err
-	}
+
 	return p, nil
 }
 
-func (p *PolandNotation) createResult() error {
+func (p *PolandNotation) CreateResult() error {
 	str := strings.ReplaceAll(p.Expression, " ", "")
 	if !validator.IsValid(str) {
 		return ErrValidation
@@ -136,19 +132,18 @@ func (p *PolandNotation) SetID(id uint64) {
 	p.id = id
 }
 
-func (p *PolandNotation) Result() {
-	stack := make([]float64, 0, 10)
-	result := SendInfo{Id: p.id}
+func (p *PolandNotation) Calculate() {
+	result := &queue.SendInfo{Id: p.id}
 	for _, v := range p.result {
 		if v == "+" || v == "-" || v == "*" || v == "/" {
-			if len(stack) < 2 {
+			if len(p.stack) < 2 {
 				p.Err = ErrValidation
 				return
 			}
-			right := stack[len(stack)-1]
-			stack = stack[:len(stack)-1]
-			left := stack[len(stack)-1]
-			stack = stack[:len(stack)-1]
+			right := p.stack[len(p.stack)-1]
+			p.stack = p.stack[:len(p.stack)-1]
+			left := p.stack[len(p.stack)-1]
+			p.stack = p.stack[:len(p.stack)-1]
 			switch v {
 			case "+":
 				result.Result = strconv.FormatFloat(left, 'f', -1, 64) + " + " + strconv.FormatFloat(right, 'f', -1, 64)
@@ -173,21 +168,23 @@ func (p *PolandNotation) Result() {
 				p.Err = err
 				return
 			}
-			stack = append(stack, number)
+			p.stack = append(p.stack, number)
 			continue
 		}
 		// Отправляем данные для подсчета результата
-		p.send <- result
+		p.queue.Enqueue(result)
 		result := <-p.get
 		number, err := strconv.ParseFloat(result, 64)
 		if err != nil {
 			p.Err = err
 			return
 		}
-		stack = append(stack, number)
+		p.stack = append(p.stack, number)
 	}
-	if len(stack) != 1 {
+	if len(p.stack) != 1 {
 		p.Err = ErrValidation
 		return
 	}
+	p.answer = p.stack[0]
+	p.isAnswer = true
 }

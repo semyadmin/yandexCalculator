@@ -1,68 +1,60 @@
 package queue
 
 import (
+	"log/slog"
 	"sync"
 	"time"
-
-	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/tasks/arithmetic"
 )
 
+type SendInfo struct {
+	Id       uint64
+	Result   string
+	Deadline uint64
+}
 type MapQueue struct {
 	sync.RWMutex
 	mapQueue map[uint64]Data
-	Queue    *LockFreeQueue
+	queue    *LockFreeQueue
 }
 
 type Data struct {
-	Exp       *arithmetic.SendInfo
+	Exp       *SendInfo
 	TimeStart time.Time
 	inQueue   bool
 }
 
 func NewMapQueue(queue *LockFreeQueue) *MapQueue {
 	m := &MapQueue{
-		Queue:    queue,
+		queue:    queue,
 		mapQueue: make(map[uint64]Data),
 	}
 	go m.checkTime()
 	return m
 }
 
-func (m *MapQueue) Enqueue(exp *arithmetic.SendInfo) {
+func (m *MapQueue) Enqueue(exp *SendInfo) {
+	m.queue.enqueue(exp)
+	m.Lock()
+	if _, ok := m.mapQueue[exp.Id]; ok {
+		delete(m.mapQueue, exp.Id)
+	}
+	m.Unlock()
+}
+
+func (m *MapQueue) Dequeue() (*SendInfo, bool) {
+	exp, ok := m.queue.dequeue()
+	if !ok {
+		return nil, false
+	}
+	m.Lock()
 	data := Data{
 		Exp:       exp,
 		TimeStart: time.Now(),
 		inQueue:   true,
 	}
-	m.Lock()
 	m.mapQueue[exp.Id] = data
-	m.Queue.Enqueue(exp)
 	m.Unlock()
-}
-
-func (m *MapQueue) Dequeue() (*arithmetic.SendInfo, bool) {
-	d, ok := m.Queue.Dequeue()
-	if !ok {
-		return nil, false
-	}
-	m.Lock()
-	data := m.mapQueue[d.Id]
-	data.inQueue = false
-	m.mapQueue[d.Id] = data
-	m.Unlock()
-	return d, true
-}
-
-func (m *MapQueue) Delete(id uint64) bool {
-	m.RLock()
-	defer m.RUnlock()
-	if data, ok := m.mapQueue[id]; ok {
-		if !data.inQueue {
-			delete(m.mapQueue, id)
-			return true
-		}
-	}
-	return false
+	return exp, true
 }
 
 func (m *MapQueue) checkTime() {
@@ -70,8 +62,8 @@ func (m *MapQueue) checkTime() {
 		m.RLock()
 		for _, data := range m.mapQueue {
 			if time.Now().After(data.TimeStart.Add(time.Minute)) {
-				m.Queue.Enqueue(data.Exp)
-				delete(m.mapQueue, data.Exp.Id)
+				slog.Info("Операция не обработана вовремя", "операция:", data.Exp)
+				m.Enqueue(data.Exp)
 			}
 		}
 		m.RUnlock()

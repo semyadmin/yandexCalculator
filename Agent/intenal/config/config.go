@@ -22,28 +22,18 @@ type ConfigExpression struct {
 }
 
 func New() *Config {
+	godotenv.Load("./config/.env")
 	maxGoroutines := os.Getenv("MAX_GOROUTINES_AGENT")
 	host := os.Getenv("HOST")
 	port := os.Getenv("PORT")
-	godotenv.Load("./config/.env")
 	if host == "" {
-		host = os.Getenv("HOST")
-		if host == "" {
-			host = "127.0.0.1"
-		}
-
+		host = "127.0.0.1"
 	}
 	if port == "" {
-		port = os.Getenv("PORT")
-		if port == "" {
-			port = "7777"
-		}
+		port = "7777"
 	}
 	if maxGoroutines == "" {
-		maxGoroutines = os.Getenv("MAX_GOROUTINES_AGENT")
-		if maxGoroutines == "" {
-			maxGoroutines = "5"
-		}
+		maxGoroutines = "5"
 	}
 	config := &Config{
 		Host:          host,
