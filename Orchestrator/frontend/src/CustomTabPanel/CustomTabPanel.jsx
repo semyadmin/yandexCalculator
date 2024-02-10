@@ -8,32 +8,41 @@ import Grid from '@mui/material/Grid';
 
 
 export default function CustomTabPanel(props) {
-  const { onChange, children, value, index, ...other } = props;
-
+  const { children, value, index, client } = props;
+  const [textValue, setTextValue] = React.useState('');
+  const onChangeText = (event) => {
+    setTextValue(event.target.value);
+  }
   return (
     <div
       role="tabpanel"
       hidden={value !== index}
       id={`simple-tabpanel-${index}`}
-      {...other}
     >
       {value === index && (
-            <Grid item md={12} container spacing={2}>
-              <Grid xs={4} sx={{m: 3}}>
-                <Box sx={{ p: 3}} align="center" display="flex" flexDirection="column" spacing={2}>
-                  <Typography>{children}</Typography>
-                  <TextField 
-                    id="outlined-basic"
-                    label="Outlined"
-                    onChange={onChange}
-                  />
-                  <Button variant="contained">Contained</Button>
-                </Box>
+          <Box sx={{ flexGrow: 1 }}>
+            <Grid container spacing={2}>
+              <Grid sx={{m: 3}}>
+                <Typography>{children}</Typography>
+                <TextField 
+                  id="outlined-basic"
+                  label="Outlined"
+                  variant="outlined"
+                  value={textValue}
+                  onChange={onChangeText}
+                />
+                <Button
+                  fullWidth
+                  variant="contained"
+                  onClick={() => onChangeText()}
+                  sx={{ mt: 3, mb: 2 }}
+                >Contained</Button>
               </Grid>
-              <Grid item xs={4}>
+              <Grid sx={{m: 3}}>
+                <Typography>{textValue}</Typography>
+              </Grid>
             </Grid>
- 
-            </Grid>
+          </Box>
           
       )}
     </div>
