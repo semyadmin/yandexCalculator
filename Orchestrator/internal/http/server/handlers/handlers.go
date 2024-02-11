@@ -7,8 +7,8 @@ import (
 
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/config"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/storage/memory"
-	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/tasks/arithmetic"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/tasks/queue"
+	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/validator"
 )
 
 func NewServeMux(config *config.Config, queue *queue.MapQueue, storage *memory.Storage) (http.Handler, error) {
@@ -42,26 +42,14 @@ func expressionHandler(config *config.Config, queue *queue.MapQueue, storage *me
 				http.Error(w, err.Error(), http.StatusBadRequest)
 				return
 			}
-			exp, err := arithmetic.NewPolandNotation(string(data), config, queue)
-			if err != nil {
+			slog.Info("Полученное выражение от пользователя:", "выражение:", string(data))
+			exp, ok := validator.Validator(string(data))
+			if !ok {
 				slog.Error("Пустое выражение:", "empty", err)
-				http.Error(w, err.Error(), http.StatusBadRequest)
+				http.Error(w, "Ваше выражение "+exp+" некорректное", http.StatusBadRequest)
 				return
 			}
-			err = exp.CreateResult()
-			if err != nil {
-				slog.Error("Ошибка создания выражения:", "error", err)
-				http.Error(w, err.Error(), http.StatusBadRequest)
-				return
-			}
-			storage.Set(exp, "new")
-			dataInfo, err := storage.GeByExpression(exp.GetExpression())
-			if err != nil {
-				slog.Error("Проблема с DataInfo:", "error", err)
-				http.Error(w, err.Error(), http.StatusBadRequest)
-				return
-			}
-			slog.Info("Данные в репозитории:", "dataInfo", dataInfo)
+
 			return
 		}
 	}

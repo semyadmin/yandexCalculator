@@ -10,8 +10,15 @@ import Grid from '@mui/material/Grid';
 export default function CustomTabPanel(props) {
   const { children, value, index, client } = props;
   const [textValue, setTextValue] = React.useState('');
+  const [answer, setAnswer] = React.useState('');
   const onChangeText = (event) => {
     setTextValue(event.target.value);
+  }
+  const sendTextValue = () => {
+    client
+      .post('/expression', textValue)
+      .then((response) => {setAnswer(response.data)})
+      .catch(error => {console.log(error)})
   }
   return (
     <div
@@ -34,12 +41,12 @@ export default function CustomTabPanel(props) {
                 <Button
                   fullWidth
                   variant="contained"
-                  onClick={() => onChangeText()}
+                  onClick={() => sendTextValue()}
                   sx={{ mt: 3, mb: 2 }}
                 >Contained</Button>
               </Grid>
               <Grid sx={{m: 3}}>
-                <Typography>{textValue}</Typography>
+                <Typography>{answer}</Typography>
               </Grid>
             </Grid>
           </Box>

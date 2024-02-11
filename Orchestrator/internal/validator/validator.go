@@ -1,20 +1,23 @@
 package validator
 
-func IsValid(str string) bool {
+import "strings"
+
+func Validator(str string) (string, bool) {
+	str = strings.ReplaceAll(str, " ", "")
 	operators := map[byte]uint8{'(': 0, ')': 0, '+': 1, '-': 1, '*': 2, '/': 2}
 	numbers := map[byte]struct{}{'0': {}, '1': {}, '2': {}, '3': {}, '4': {}, '5': {}, '6': {}, '7': {}, '8': {}, '9': {}}
 	if str[0] == '+' || str[0] == '-' || str[0] == '*' || str[0] == '/' || str[0] == ')' {
-		return false
+		return "", false
 	}
 	if str[len(str)-1] == '+' || str[len(str)-1] == '-' || str[len(str)-1] == '*' || str[len(str)-1] == '/' || str[len(str)-1] == '(' {
-		return false
+		return "", false
 	}
 	for i := 0; i < len(str)-1; i++ {
 		operator := str[i]
 		nextOperator := str[i+1]
 		if _, ok := operators[operator]; !ok {
 			if _, ok := numbers[operator]; !ok {
-				return false
+				return "", false
 			}
 		}
 		if operator == '*' || operator == '/' || operator == '+' || operator == '-' {
@@ -23,7 +26,7 @@ func IsValid(str string) bool {
 				nextOperator == '+' ||
 				nextOperator == '-' ||
 				nextOperator == ')' {
-				return false
+				return "", false
 			}
 		}
 		if operator == '(' {
@@ -32,7 +35,7 @@ func IsValid(str string) bool {
 				nextOperator == '+' ||
 				nextOperator == '-' ||
 				nextOperator == ')' {
-				return false
+				return "", false
 			}
 		}
 
@@ -44,8 +47,8 @@ func IsValid(str string) bool {
 				nextOperator == ')' {
 				continue
 			}
-			return false
+			return "", false
 		}
 	}
-	return true
+	return str, false
 }

@@ -12,7 +12,7 @@ import (
 var errExpressionNotExists = errors.New("Выражение не существует")
 
 type DataInfo struct {
-	Expression *arithmetic.PolandNotation
+	Expression *arithmetic.ASTTree
 	Id         uint64
 }
 type Storage struct {
@@ -34,7 +34,7 @@ func New(config *config.ConfigExpression) *Storage {
 	}
 }
 
-func (s *Storage) Set(data *arithmetic.PolandNotation, status string) {
+func (s *Storage) Set(data *arithmetic.ASTTree, status string) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 	if data, ok := s.data[data.GetExpression()]; ok {

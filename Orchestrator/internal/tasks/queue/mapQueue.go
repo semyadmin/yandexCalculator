@@ -7,13 +7,14 @@ import (
 )
 
 type SendInfo struct {
-	Id       uint64
-	Result   string
-	Deadline uint64
+	Id         string
+	Expression string
+	Result     chan string
+	Deadline   uint64
 }
 type MapQueue struct {
 	sync.RWMutex
-	mapQueue map[uint64]Data
+	mapQueue map[string]Data
 	queue    *LockFreeQueue
 }
 
@@ -26,7 +27,7 @@ type Data struct {
 func NewMapQueue(queue *LockFreeQueue) *MapQueue {
 	m := &MapQueue{
 		queue:    queue,
-		mapQueue: make(map[uint64]Data),
+		mapQueue: make(map[string]Data),
 	}
 	go m.checkTime()
 	return m
