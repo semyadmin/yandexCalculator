@@ -5,12 +5,19 @@ import Box from '@mui/material/Box';
 import TextField from '@mui/material/TextField';
 import Button from '@mui/material/Button';
 import Grid from '@mui/material/Grid';
+import BasicTable from './BasicTable/BasicTable';
+import Snackbar from '@mui/material/Snackbar';
+import Alert from '@mui/material/Alert';
 
 
 export default function CustomTabPanel(props) {
+  const [openSuccess, setOpenSuccess] = React.useState(false);
+  const [textSnackbarSuccess, setTextSnackbarSuccess] = React.useState('')
+  const [textSnackbarError, setTextSnackbarError] = React.useState('')
+  const [openError, setOpenError] = React.useState(false);
   const { children, value, index, client } = props;
   const [textValue, setTextValue] = React.useState('');
-  const [answer, setAnswer] = React.useState('');
+  const [answer, setAnswer] = React.useState([]);
   const onChangeText = (event) => {
     setTextValue(event.target.value);
   }
@@ -22,12 +29,45 @@ export default function CustomTabPanel(props) {
         }
       })
       .then((response) => {
-        setAnswer(response.data)
+        const res = {
+          id: response.data.ID,
+          expression: response.data.Expression,
+          start: response.data.Start,
+          end: response.data.End,
+          status: response.data.Status
+        }
+        const ids = answer.map(el => el.id)
+        if (ids.includes(res.id) == false) {
+          setOpenSuccess(false)
+          setTextSnackbarSuccess(`Выражение ${res.expression} успешно поставлено на обработку`)
+          setOpenSuccess(true)
+          setAnswer([...answer,res])
+        } else {
+          setOpenSuccess(false)
+          setTextSnackbarSuccess(`Выражение ${res.expression} уже обрабатывается`)
+          setOpenSuccess(true)
+        }
       })
       .catch(error => {
-        setAnswer(error.response.data)
+        console.log(error)
+        setTextSnackbarError(`Введенное выражение некорректно!`)
+        setOpenError(true)
       })
   }
+  const handleCloseSuccess = (event, reason) => {
+    if (reason === 'clickaway') {
+      return;
+    }
+    setOpenSuccess(false);
+  };
+  const handleCloseError = (event, reason) => {
+    if (reason === 'clickaway') {
+      return;
+    }
+    setOpenError(false);
+  };
+ 
+  
   return (
     <div
       role="tabpanel"
@@ -35,31 +75,51 @@ export default function CustomTabPanel(props) {
       id={`simple-tabpanel-${index}`}
     >
       {value === index && (
-          <Box sx={{ flexGrow: 1 }}>
-            <Grid container spacing={2}>
-              <Grid sx={{m: 3}}>
-                <Typography>{children}</Typography>
-                <TextField 
-                  id="outlined-basic"
-                  label="Outlined"
-                  variant="outlined"
-                  value={textValue}
-                  onChange={onChangeText}
-                />
-                <Button
-                  fullWidth
-                  variant="contained"
-                  onClick={() => sendTextValue()}
-                  sx={{ mt: 3, mb: 2 }}
-                >Contained</Button>
-              </Grid>
-              <Grid sx={{m: 3}}>
-                <Typography>{answer}</Typography>
-              </Grid>
+        <Box sx={{ flexGrow: 1 }}>
+          <Grid container spacing={2}>
+            <Grid sx={{m: 3}}>
+              <Typography>{children}</Typography>
+              <TextField 
+                id="outlined-basic"
+                label="Outlined"
+                variant="outlined"
+                value={textValue}
+                sx={{ mt: 3, mb: 2 }}
+                onChange={onChangeText}
+              />
+              <Button
+                fullWidth
+                variant="contained"
+                onClick={() => sendTextValue()}
+                sx={{ mt: 3, mb: 2 }}
+              >Contained</Button>
             </Grid>
-          </Box>
-          
+            <Grid sx={{m: 3}}>
+              <BasicTable rows={answer} />
+            </Grid>
+          </Grid>
+        </Box>      
       )}
+      <Snackbar open={openSuccess} autoHideDuration={6000} onClose={handleCloseSuccess}>
+        <Alert
+          onClose={handleCloseSuccess}
+          severity="success"
+          variant="filled"
+          sx={{ width: '100%' }}
+        >
+          {textSnackbarSuccess}
+        </Alert>
+      </Snackbar>
+      <Snackbar open={openError} autoHideDuration={6000} onClose={handleCloseError}>
+        <Alert
+          onClose={handleCloseError}
+          severity="error"
+          variant="filled"
+          sx={{ width: '100%' }}
+        >
+          {textSnackbarError}
+        </Alert>
+      </Snackbar>
     </div>
   );
 }

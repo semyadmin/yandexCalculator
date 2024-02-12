@@ -7,6 +7,7 @@ import (
 	"go/parser"
 	"go/token"
 	"strconv"
+	"time"
 )
 
 func operate(litX, litY *ast.BasicLit, op token.Token) (*ast.BasicLit, error) {
@@ -152,4 +153,5 @@ func main() {
 	fmt.Println(r)
 
 	fmt.Println("-------------------")
+	fmt.Println(time.Now().Add(60 * time.Second).Format("02.01.2006 15:04:05"))
 }

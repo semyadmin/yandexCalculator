@@ -6,6 +6,7 @@ import (
 	"go/parser"
 	"log/slog"
 	"sync"
+	"time"
 
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/config"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/tasks/queue"
@@ -22,6 +23,7 @@ type ASTTree struct {
 	IsParent   bool
 	queue      *queue.MapQueue
 	config     *config.Config
+	Start      time.Time
 	Duration   int
 	Err        error
 	sync.Mutex
@@ -45,6 +47,7 @@ func NewASTTree(expression string, config *config.Config, queue *queue.MapQueue)
 	a.queue = queue
 	a.config = config
 	a.Duration = duration(a, config)
+	a.Start = time.Now()
 	return a, nil
 }
 
