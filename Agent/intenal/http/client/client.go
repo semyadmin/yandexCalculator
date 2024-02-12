@@ -69,31 +69,41 @@ func (c *Client) calculate(expression string) {
 		slog.Error("ошибка вычисления выражения", "ошибка", err, "выражение", expression, "агент", c.id)
 		result = "error"
 	}
-	c.sendResult(result, c.config.Host+":"+c.config.Port)
-}
-
-// отправка конечного результата
-func (c *Client) sendResult(result string, address string) {
 	for {
-		conn, err := net.Dial("tcp", address)
-		defer conn.Close()
+		conn, err := net.Dial("tcp", c.config.Host+":"+c.config.Port)
 		if err != nil {
 			slog.Error("не удалось подключиться к оркестратору", "ошибка", err, "агент", c.id)
 			time.Sleep(5 * time.Second)
 			continue
 		}
-		_, err = conn.Write([]byte("result"))
+		err = c.sendResult(conn, result)
 		if err != nil {
-			time.Sleep(5 * time.Second)
+			slog.Error("не удалось отправить результат вычисления выражения", "ошибка", err, "агент", c.id)
 			continue
 		}
-		n, err := conn.Write([]byte(result))
-		if err != nil || n < len(result) {
-			slog.Error("не удалось записать результат вычисления выражения", "ошибка", err, "агент", c.id)
-			time.Sleep(5 * time.Second)
-			continue
-		}
-		slog.Info("отправлен результат вычисления выражения", "результат", result, "агент", c.id)
-		return
+		conn.Close()
+		break
 	}
+}
+
+// отправка конечного результата
+func (c *Client) sendResult(conn net.Conn, result string) error {
+	_, err := conn.Write([]byte("result"))
+	if err != nil {
+		return err
+	}
+	buf := make([]byte, 512)
+	n, err := conn.Read(buf)
+	if !errors.Is(io.EOF, err) && err != nil {
+		return err
+	}
+	if string(buf[:n]) != "ok" {
+		return errors.New("ответ от сервера некорректен")
+	}
+	n, err = conn.Write([]byte(result))
+	if err != nil || n < len(result) {
+		return err
+	}
+	slog.Info("отправлен результат вычисления выражения", "результат", result, "агент", c.id)
+	return nil
 }

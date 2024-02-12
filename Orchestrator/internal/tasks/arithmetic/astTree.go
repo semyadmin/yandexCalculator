@@ -1,8 +1,10 @@
 package arithmetic
 
 import (
+	"errors"
 	"go/ast"
 	"go/parser"
+	"log/slog"
 	"sync"
 
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/config"
@@ -20,6 +22,7 @@ type ASTTree struct {
 	IsParent   bool
 	queue      *queue.MapQueue
 	config     *config.Config
+	Duration   int
 	Err        error
 	sync.Mutex
 }
@@ -40,6 +43,8 @@ func NewASTTree(expression string, config *config.Config, queue *queue.MapQueue)
 	}
 	a.Expression = expression
 	a.queue = queue
+	a.config = config
+	a.Duration = duration(a, config)
 	return a, nil
 }
 
@@ -60,6 +65,28 @@ func create(tr ast.Expr) *ASTTree {
 	return a
 }
 
+func duration(a *ASTTree, config *config.Config) int {
+	if a == nil {
+		return 0
+	}
+	res := 0
+	if a.Operator == "+" {
+		res += config.Plus
+	}
+	if a.Operator == "-" {
+		res += config.Minus
+	}
+	if a.Operator == "*" {
+		res += config.Multiply
+	}
+	if a.Operator == "*" {
+		res += config.Divide
+	}
+	res += duration(a.X, config)
+	res += duration(a.Y, config)
+	return res
+}
+
 func (a *ASTTree) Calculate() {
 	if a.IsCalc {
 		return
@@ -77,6 +104,7 @@ func (a *ASTTree) Calculate() {
 	a.Value = res.res
 	a.IsCalc = true
 	a.Unlock()
+	slog.Info("Выражение вычислено", "выражение:", a.Expression, "результат:", a.Value)
 }
 
 func (a *ASTTree) GetExpression() string {
@@ -87,15 +115,15 @@ func (a *ASTTree) SetID(id uint64) {
 	a.ID = id
 }
 
-func PrintResult(a *ASTTree) string {
+func PrintExpression(a *ASTTree) string {
 	if a.IsCalc {
 		return a.Value
 	}
 	if a.IsParent {
-		return "(" + PrintResult(a.X) + ")"
+		return "(" + PrintExpression(a.X) + ")"
 	}
 
-	return PrintResult(a.X) + a.Operator + PrintResult(a.Y)
+	return PrintExpression(a.X) + a.Operator + PrintExpression(a.Y)
 }
 
 func getResult(a *ASTTree, ch chan result, parent *ASTTree, level string) {
@@ -164,6 +192,11 @@ func calculate(resX, operator, resY string, parent *ASTTree, level string) resul
 	}
 	parent.queue.Enqueue(send)
 	res := result{}
-	res.res = <-send.Result
+	resExp := <-send.Result
+	if resExp == "error" {
+		res.err = errors.New("error")
+		return res
+	}
+	res.res = resExp
 	return res
 }

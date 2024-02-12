@@ -16,7 +16,10 @@ type LockFreeQueue struct {
 }
 
 func NewLockFreeQueue() *LockFreeQueue {
-	return &LockFreeQueue{}
+	return &LockFreeQueue{
+		head: unsafe.Pointer(nil),
+		tail: unsafe.Pointer(nil),
+	}
 }
 
 func (l *LockFreeQueue) enqueue(value *SendInfo) {

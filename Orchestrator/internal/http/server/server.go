@@ -20,19 +20,20 @@ func Run(ctx context.Context, config *config.Config, queue *queue.MapQueue, stor
 	}
 	serveMux = handlers.Decorate(serveMux, logMiddleware())
 	// Инициализируем HTTP сервер
-	httpServer := &http.Server{Addr: ":8080", Handler: serveMux}
+	httpServer := &http.Server{Addr: ":" + config.HttpPort, Handler: serveMux}
 
-	slog.Info("Http сервер запущен на порту 8080")
+	slog.Info("Http сервер запущен на порту " + config.HttpPort)
 
 	go func() {
 		if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			slog.Error("Ошибка сервера:", "error", err)
 		}
 	}()
-
+	// Возвращаем функцию для остановки сервера
 	return httpServer.Shutdown, nil
 }
 
+// Логгируем все приходящие запросы
 func logMiddleware() func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

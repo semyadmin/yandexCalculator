@@ -1,6 +1,8 @@
 package validator
 
-import "strings"
+import (
+	"strings"
+)
 
 func Validator(str string) (string, bool) {
 	str = strings.ReplaceAll(str, " ", "")
@@ -50,5 +52,5 @@ func Validator(str string) (string, bool) {
 			return "", false
 		}
 	}
-	return str, false
+	return str, true
 }

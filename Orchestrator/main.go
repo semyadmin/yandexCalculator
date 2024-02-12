@@ -7,8 +7,6 @@ import (
 	"go/parser"
 	"go/token"
 	"strconv"
-
-	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/tasks/arithmetic"
 )
 
 func operate(litX, litY *ast.BasicLit, op token.Token) (*ast.BasicLit, error) {
@@ -118,20 +116,6 @@ func prefixNotation(n ast.Node) string {
 	return r
 }
 
-func printResult(a *arithmetic.ASTTree) string {
-	if a.Expression != "" {
-		fmt.Println(a.Expression)
-	}
-	if a.IsCalc {
-		return strconv.FormatFloat(a.Value, 'f', -1, 64)
-	}
-	if a.IsParent {
-		return "(" + printResult(a.X) + ")"
-	}
-
-	return printResult(a.X) + a.Operator + printResult(a.Y)
-}
-
 func main() {
 	/*
 	   Usage:
@@ -139,16 +123,6 @@ func main() {
 	*/
 
 	exp := "7+2+9*2-1"
-
-	astNew, err := arithmetic.NewASTTree(exp)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-
-	str := printResult(astNew)
-
-	fmt.Println(str)
 
 	tr, err := parser.ParseExpr(exp)
 	if err != nil {

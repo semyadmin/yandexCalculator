@@ -16,9 +16,17 @@ export default function CustomTabPanel(props) {
   }
   const sendTextValue = () => {
     client
-      .post('/expression', textValue)
-      .then((response) => {setAnswer(response.data)})
-      .catch(error => {console.log(error)})
+      .post('expression', textValue, {
+        headers: { 
+            'Content-Type' : 'text/plain' 
+        }
+      })
+      .then((response) => {
+        setAnswer(response.data)
+      })
+      .catch(error => {
+        setAnswer(error.response.data)
+      })
   }
   return (
     <div

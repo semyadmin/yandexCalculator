@@ -4,7 +4,7 @@ import BasicTabs from './BasicTabs/BasicTabs.jsx';
 import axios from 'axios';
 
 const client = axios.create({
-  baseURL: 'http://localhost:8080',
+  baseURL: window.location.href,
 })
 
 function App() {

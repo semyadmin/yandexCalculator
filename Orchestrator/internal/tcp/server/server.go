@@ -84,12 +84,18 @@ func (s *server) handleConnection(conn net.Conn) {
 		return
 	}
 	if string(buf[:n]) == "result" {
+		n, err = conn.Write([]byte("ok"))
+		if err != nil && n < len("ok") {
+			slog.Info("Клиент отключился", "ошибка:", err)
+			return
+		}
 		n, err := conn.Read(buf)
 		if !errors.Is(io.EOF, err) && err != nil {
 			slog.Info("Клиент отключился", "ошибка:", err)
 			return
 		}
 		slog.Info("Результат операция получен", "результат:", string(buf[:n]))
+		s.queue.Done(string(buf[:n]))
 	}
 	if string(buf[:n]) == "new" {
 		var exp *queue.SendInfo
@@ -103,7 +109,7 @@ func (s *server) handleConnection(conn net.Conn) {
 			return
 		}
 		slog.Info("Данные для отправки", "статус:", "data", "data", exp)
-		str := strconv.FormatUint(exp.Id, 10) + " " + exp.Result + " " + strconv.FormatUint(exp.Deadline, 10)
+		str := exp.Id + " " + exp.Expression + " " + strconv.FormatUint(exp.Deadline, 10)
 		n, err = conn.Write([]byte(str))
 		if err != nil && n < len(str) {
 			slog.Info("Клиент отключился", "ошибка:", err)

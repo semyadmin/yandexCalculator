@@ -4,9 +4,11 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"strconv"
 
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/config"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/storage/memory"
+	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/tasks/arithmetic"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/tasks/queue"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/validator"
 )
@@ -38,18 +40,31 @@ func expressionHandler(config *config.Config, queue *queue.MapQueue, storage *me
 			}
 			data, err := io.ReadAll(r.Body)
 			if err != nil {
-				slog.Error("Проблема с чтением данных:", "error", err)
+				slog.Error("Проблема с чтением данных:", "ошибка:", err)
 				http.Error(w, err.Error(), http.StatusBadRequest)
 				return
 			}
 			slog.Info("Полученное выражение от пользователя:", "выражение:", string(data))
-			exp, ok := validator.Validator(string(data))
+			str, ok := validator.Validator(string(data))
 			if !ok {
-				slog.Error("Пустое выражение:", "empty", err)
-				http.Error(w, "Ваше выражение "+exp+" некорректное", http.StatusBadRequest)
+				slog.Error("Некорректное выражение:", "ошибка:", err)
+				http.Error(w, "Ваше выражение "+str+" некорректное", http.StatusBadRequest)
 				return
 			}
-
+			dataInfo, err := storage.GeByExpression(str)
+			if err == nil {
+				w.WriteHeader(http.StatusAccepted)
+				w.Write([]byte("Ваш id: " + strconv.FormatInt(int64(dataInfo.Id), 10)))
+			}
+			exp, err := arithmetic.NewASTTree(str, config, queue)
+			if err != nil {
+				slog.Error("Проблема с вычислением выражения:", "выражение:", err)
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				return
+			}
+			storage.Set(exp, "new")
+			w.WriteHeader(http.StatusAccepted)
+			w.Write([]byte("Ваш id: " + strconv.FormatInt(int64(exp.ID), 10)))
 			return
 		}
 	}

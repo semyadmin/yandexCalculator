@@ -15,15 +15,15 @@ import (
 
 func main() {
 	conf := config.New()
-	conf.Plus = 1
+	conf.Plus = 60
 	storage := memory.New(&config.ConfigExpression{})
 	newQueue := queue.NewMapQueue(queue.NewLockFreeQueue())
-	tcpServer, err := serverTCP.NewServer(":7777", conf, newQueue, storage)
+	tcpServer, err := serverTCP.NewServer(":"+conf.TCPPort, conf, newQueue, storage)
 	if err != nil {
 		slog.Error("Ошибка запуска TCP/IP сервера:", "ошибка:", err)
 		os.Exit(1)
 	}
-	slog.Info("Запуск TCP/IP сервера на порту 7777")
+	slog.Info("Запуск TCP/IP сервера на порту " + conf.TCPPort)
 	tcpServer.Start()
 	slog.Info("Оркестратор запущен")
 	ctx, cancel := context.WithCancel(context.Background())
