@@ -7,7 +7,9 @@ import (
 	"go/parser"
 	"go/token"
 	"strconv"
-	"time"
+	"sync"
+
+	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/tasks/queue"
 )
 
 func operate(litX, litY *ast.BasicLit, op token.Token) (*ast.BasicLit, error) {
@@ -78,6 +80,7 @@ func evalNode(n ast.Node) (*ast.BasicLit, error) {
 	lit := new(ast.BasicLit)
 	switch nod := n.(type) {
 	case *ast.BasicLit:
+		fmt.Println(nod)
 		lit = nod
 	case *ast.ParenExpr:
 		lit, err = evalNode(nod.X)
@@ -118,14 +121,49 @@ func prefixNotation(n ast.Node) string {
 }
 
 func main() {
+	q := queue.NewLockFreeQueue()
+	wg := sync.WaitGroup{}
+	for i := 0; i < 5; i++ {
+		wg.Add(2)
+		go func(i int) {
+			s := queue.SendInfo{
+				Id:         strconv.Itoa(i),
+				Expression: "2+2+2*2",
+				Result:     make(chan string),
+				Deadline:   0,
+			}
+			q.Enqueue(&s)
+			wg.Done()
+		}(i)
+		go func() {
+			res, ok := q.Dequeue()
+			if ok {
+				fmt.Println(res)
+			}
+			wg.Done()
+		}()
+	}
+
+	wg.Wait()
+
+	for i := 0; i < 5; i++ {
+		res, ok := q.Dequeue()
+		if ok {
+			fmt.Println(res)
+		}
+	}
+
+	return
+
 	/*
 	   Usage:
 	           echo "(7+2+9)*2" | ./ast_sample
 	*/
 
-	exp := "7+2+9*2-1"
+	exp := "2+2+2*2"
 
 	tr, err := parser.ParseExpr(exp)
+	fmt.Println("te")
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -139,19 +177,21 @@ func main() {
 		        ast.Print(fs, tr)
 		        fmt.Println("-------------------")
 	*/
-
 	r, err := evalNode(tr)
-	p := prefixNotation(tr)
-	if err != nil {
-		fmt.Printf("%s\n", err)
-	} else {
-		fmt.Printf("%s: %s\n", p, r.Value)
-	}
 	fmt.Println("-------------------")
 	fs := token.NewFileSet()
 	ast.Print(fs, tr)
 	fmt.Println(r)
 
 	fmt.Println("-------------------")
-	fmt.Println(time.Now().Add(60 * time.Second).Format("02.01.2006 15:04:05"))
+
+	p := prefixNotation(tr)
+	if err != nil {
+		fmt.Printf("%s\n", err)
+	} else {
+		fmt.Printf("%s: %s\n", p, r.Value)
+	}
+
+	num, _ := strconv.ParseFloat("1.5", 64)
+	fmt.Println(num)
 }

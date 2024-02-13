@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
@@ -21,6 +22,7 @@ func NewServeMux(config *config.Config, queue *queue.MapQueue, storage *memory.S
 	patchToFront := "./frontend/build"
 	serveMux.Handle("/", http.FileServer(http.Dir(patchToFront)))
 	serveMux.HandleFunc("/expression", expressionHandler(config, queue, storage))
+	serveMux.HandleFunc("/id/", getById)
 	return serveMux, nil
 }
 
@@ -31,6 +33,10 @@ func Decorate(next http.Handler, middleware ...func(http.Handler) http.Handler) 
 	}
 
 	return decorated
+}
+
+func getById(w http.ResponseWriter, r *http.Request) {
+	fmt.Println(r.URL.Path)
 }
 
 func expressionHandler(config *config.Config, queue *queue.MapQueue, storage *memory.Storage) func(w http.ResponseWriter, r *http.Request) {

@@ -24,6 +24,7 @@ func NewExpression(a *arithmetic.ASTTree) Expression {
 	r.End = a.Start.Add(time.Duration(a.Duration) * time.Second).Format("02.01.2006 15:04:05")
 	r.Status = "progress"
 	if a.IsCalc {
+		r.Expression = a.Expression + "=" + a.Value
 		r.Status = "completed"
 	}
 	a.Unlock()

@@ -15,7 +15,7 @@ export default function CustomTabPanel(props) {
   const [textSnackbarSuccess, setTextSnackbarSuccess] = React.useState('')
   const [textSnackbarError, setTextSnackbarError] = React.useState('')
   const [openError, setOpenError] = React.useState(false);
-  const { children, value, index, client } = props;
+  const { value, index, client } = props;
   const [textValue, setTextValue] = React.useState('');
   const [answer, setAnswer] = React.useState([]);
   const onChangeText = (event) => {
@@ -78,11 +78,18 @@ export default function CustomTabPanel(props) {
         <Box sx={{ flexGrow: 1 }}>
           <Grid container spacing={2}>
             <Grid sx={{m: 3}}>
-              <Typography>{children}</Typography>
+              <Typography variant="body1" gutterBottom sx={{ maxWidth: 600 }}>
+                  Введите выражение, которое хотите посчитать.<br/>
+                Поддерживаемые выражения: +, -, *, /. <br />
+                Поддерживаются большие числа, но точность будет низкая.<br/>
+                Инкремент не поддерживается(в этом случае надо вводить 0-ваше_число) <br />
+                Дробные числа поддерживаются.
+                Так же можно писать выражения в скобках. Например: (1+2)*3
+              </Typography>
               <TextField 
+                fullWidth
                 id="outlined-basic"
-                label="Outlined"
-                variant="outlined"
+                label="Выражение"
                 value={textValue}
                 sx={{ mt: 3, mb: 2 }}
                 onChange={onChangeText}
@@ -92,7 +99,7 @@ export default function CustomTabPanel(props) {
                 variant="contained"
                 onClick={() => sendTextValue()}
                 sx={{ mt: 3, mb: 2 }}
-              >Contained</Button>
+              >Расчитать</Button>
             </Grid>
             <Grid sx={{m: 3}}>
               <BasicTable rows={answer} />

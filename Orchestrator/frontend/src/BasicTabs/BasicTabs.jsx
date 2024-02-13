@@ -15,14 +15,12 @@ import CustomTabPanel from '../CustomTabPanel/CustomTabPanel';
       <Box sx={{ width: '100%' }}>
         <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
           <Tabs value={value} onChange={handleChange} aria-label="basic tabs example">
-            <Tab label="Item One" />
+            <Tab label="Рассчитать выражение" />
             <Tab label="Item Two" />
             <Tab label="Item Three"  />
           </Tabs>
         </Box>
-        <CustomTabPanel value={value} index={0} client={client}>
-          Item One
-        </CustomTabPanel>
+        <CustomTabPanel value={value} index={0} client={client} />
       </Box>
     );
   }

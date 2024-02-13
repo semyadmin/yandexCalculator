@@ -51,16 +51,18 @@ func (m *MapQueue) Enqueue(exp *SendInfo) {
 			m.Unlock()
 		}
 	}
-	m.queue.enqueue(exp)
+	slog.Info("DDDDDDDDDDDDDDDDDDD", "операция:", exp)
+	m.queue.Enqueue(exp)
 	slog.Info("Операция добавлена в очередь", "операция:", exp)
 }
 
 func (m *MapQueue) Dequeue() (*SendInfo, bool) {
-	exp, ok := m.queue.dequeue()
+	m.Lock()
+	defer m.Unlock()
+	exp, ok := m.queue.Dequeue()
 	if !ok {
 		return nil, false
 	}
-	m.Lock()
 	data := Data{
 		Exp:          exp,
 		TimeDeadLine: time.Now().Add(time.Duration(exp.Deadline)*time.Second + 5*time.Second),
@@ -68,7 +70,6 @@ func (m *MapQueue) Dequeue() (*SendInfo, bool) {
 		result:       "",
 	}
 	m.mapQueue[exp.Id] = data
-	m.Unlock()
 	return exp, true
 }
 
@@ -121,6 +122,18 @@ func (m *MapQueue) checkTime() {
 				}
 			}
 			time.Sleep(time.Second * 5)
+		}
+	}()
+	go func() {
+		for {
+			res, ok := m.queue.Dequeue()
+			if ok {
+				slog.Info("AAAAAAAAAAAAAAAAAAA", "операция:", res)
+			} else {
+				slog.Info("NOOOOOOOO")
+			}
+			time.Sleep(time.Second * 3)
+
 		}
 	}()
 }

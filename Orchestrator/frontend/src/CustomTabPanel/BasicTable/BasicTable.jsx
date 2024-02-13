@@ -7,6 +7,10 @@ import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import Paper from '@mui/material/Paper';
 import AutorenewIcon from '@mui/icons-material/Autorenew';
+import CheckIcon from '@mui/icons-material/Check';
+import IconButton from '@mui/material/IconButton';
+import Tooltip from '@mui/material/Tooltip';
+import CloseIcon from '@mui/icons-material/Close';
 
 
 
@@ -30,7 +34,18 @@ export default function BasicTable(rows) {
               key={row.id}
               sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
             >
-              <TableCell><AutorenewIcon /></TableCell>
+              <TableCell>
+                
+                  {row.status == 'progress' 
+                  ? <Tooltip title="Обновить информацию"><IconButton><AutorenewIcon
+                      onClick={(event) => console.log(event)}
+                      sx={{ "&:hover": { color: "green" } }}
+                  /></IconButton></Tooltip>
+                  : row.status == 'completed' ? <Tooltip title="Выражение посчитано"><CheckIcon/></Tooltip> 
+                  : <Tooltip title="Выражение посчитано с ошибкой"><CloseIcon/></Tooltip> 
+                  }
+                
+               </TableCell>
               <TableCell component="th" scope="row">
                 {row.id}
               </TableCell>
