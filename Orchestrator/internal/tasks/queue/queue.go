@@ -26,22 +26,23 @@ func NewLockFreeQueue() *LockFreeQueue {
 func (l *LockFreeQueue) Enqueue(value *SendInfo) {
 	node := &Node{value: value}
 	for {
-		if (*Node)(atomic.LoadPointer(&l.tail)) == nil {
-			if atomic.CompareAndSwapPointer(&l.tail, l.tail, unsafe.Pointer(node)) {
-				break
-			}
-		}
-		if (*Node)(atomic.LoadPointer(&l.head)) == nil {
-			first := (*Node)(atomic.LoadPointer(&l.tail))
-			first.next = node
-			if atomic.CompareAndSwapPointer(&l.head, l.head, unsafe.Pointer(node)) {
+		tailPointer := unsafe.Pointer((*Node)(atomic.LoadPointer(&l.tail)))
+		if tailPointer == nil {
+			if atomic.CompareAndSwapPointer(&l.tail, tailPointer, unsafe.Pointer(node)) {
 				break
 			}
 		}
 		oldNode := (*Node)(atomic.LoadPointer(&l.head))
+		ptrOldNode := unsafe.Pointer(oldNode)
+		if ptrOldNode == nil {
+			first := (*Node)(atomic.LoadPointer(&l.tail))
+			first.next = node
+			if atomic.CompareAndSwapPointer(&l.head, ptrOldNode, unsafe.Pointer(node)) {
+				break
+			}
+		}
 		oldNode.next = node
 		ptr := unsafe.Pointer(node)
-		ptrOldNode := unsafe.Pointer(oldNode)
 		if atomic.CompareAndSwapPointer(&l.head, ptrOldNode, ptr) {
 			slog.Info("Add", "node", node.value.Expression, "t", l.tail, "h", l.head)
 			break
@@ -56,10 +57,13 @@ func (l *LockFreeQueue) Dequeue() (*SendInfo, bool) {
 		if result == nil {
 			return nil, false
 		}
-		slog.Info("Result", "res", result)
 		newTail := result.next
 		newTailUnsafe := unsafe.Pointer(newTail)
-		if atomic.CompareAndSwapPointer(&l.tail, l.tail, newTailUnsafe) {
+		oldNode := unsafe.Pointer(result)
+		if atomic.CompareAndSwapPointer(&l.tail, oldNode, newTailUnsafe) {
+			if l.tail == l.head {
+				l.head = unsafe.Pointer(nil)
+			}
 			break
 		}
 	}

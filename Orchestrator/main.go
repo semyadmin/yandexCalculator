@@ -7,9 +7,8 @@ import (
 	"go/parser"
 	"go/token"
 	"strconv"
-	"sync"
 
-	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/tasks/queue"
+	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/tasks/arithmetic"
 )
 
 func operate(litX, litY *ast.BasicLit, op token.Token) (*ast.BasicLit, error) {
@@ -120,41 +119,7 @@ func prefixNotation(n ast.Node) string {
 	return r
 }
 
-func main() {
-	q := queue.NewLockFreeQueue()
-	wg := sync.WaitGroup{}
-	for i := 0; i < 5; i++ {
-		wg.Add(2)
-		go func(i int) {
-			s := queue.SendInfo{
-				Id:         strconv.Itoa(i),
-				Expression: "2+2+2*2",
-				Result:     make(chan string),
-				Deadline:   0,
-			}
-			q.Enqueue(&s)
-			wg.Done()
-		}(i)
-		go func() {
-			res, ok := q.Dequeue()
-			if ok {
-				fmt.Println(res)
-			}
-			wg.Done()
-		}()
-	}
-
-	wg.Wait()
-
-	for i := 0; i < 5; i++ {
-		res, ok := q.Dequeue()
-		if ok {
-			fmt.Println(res)
-		}
-	}
-
-	return
-
+func main1() {
 	/*
 	   Usage:
 	           echo "(7+2+9)*2" | ./ast_sample
@@ -194,4 +159,8 @@ func main() {
 
 	num, _ := strconv.ParseFloat("1.5", 64)
 	fmt.Println(num)
+}
+
+func main() {
+	fmt.Println(arithmetic.Upgrade("1+2+3*4*5*6+6*7"))
 }

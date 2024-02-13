@@ -2,6 +2,7 @@ package arithmetic
 
 import (
 	"errors"
+	"fmt"
 	"go/ast"
 	"go/parser"
 	"log/slog"
@@ -202,4 +203,69 @@ func calculate(resX, operator, resY string, parent *ASTTree, level string) resul
 	}
 	res.res = resExp
 	return res
+}
+
+func Upgrade(exp string) string {
+	operator := byte('0')
+	result := make([]byte, 0)
+	left := 0
+	zeroIndex := 0
+	var prevOperator byte
+	for i := 1; i < len(exp)-1; i++ {
+		if exp[i] == '+' || exp[i] == '-' {
+			prevOperator = exp[i]
+			if prevOperator == '*' || prevOperator == '/' {
+				result = append(result, exp[left:i]...)
+				result = append(result, exp[i])
+				fmt.Println(string(result))
+				left = i + 1
+				operator = '0'
+				continue
+			}
+			if operator == '0' {
+				operator = exp[i]
+				zeroIndex = i + 1
+				continue
+			}
+			array := append([]byte{'('}, exp[left:i]...)
+			array = append(array, ')')
+			array = append(array, exp[i])
+			fmt.Println(string(array), "----")
+			result = append(result, array...)
+			left = i + 1
+			operator = '0'
+
+		}
+		if exp[i] == '*' || exp[i] == '/' {
+			prevOperator = exp[i]
+			if operator != '0' && prevOperator == '+' || prevOperator == '-' {
+				array := append([]byte{'('}, exp[left:i]...)
+				array = append(array, ')')
+				array = append(array, exp[i])
+				fmt.Println(string(array), "----")
+				result = append(result, array...)
+				left = i + 1
+				operator = '0'
+				continue
+			}
+			if operator != '0' && operator == '+' || operator == '-' {
+				result = append(result, exp[left:zeroIndex]...)
+				left = zeroIndex
+				fmt.Println(string(result))
+				operator = exp[i]
+				continue
+			}
+			operator = exp[i]
+			zeroIndex = i + 1
+
+		}
+	}
+	if operator != '0' {
+		array := append([]byte{'('}, exp[left:]...)
+		array = append(array, ')')
+		result = append(result, array...)
+	} else {
+		result = append(result, exp[left:]...)
+	}
+	return string(result)
 }

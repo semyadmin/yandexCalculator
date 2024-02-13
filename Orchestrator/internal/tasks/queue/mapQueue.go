@@ -51,7 +51,6 @@ func (m *MapQueue) Enqueue(exp *SendInfo) {
 			m.Unlock()
 		}
 	}
-	slog.Info("DDDDDDDDDDDDDDDDDDD", "операция:", exp)
 	m.queue.Enqueue(exp)
 	slog.Info("Операция добавлена в очередь", "операция:", exp)
 }
@@ -122,18 +121,6 @@ func (m *MapQueue) checkTime() {
 				}
 			}
 			time.Sleep(time.Second * 5)
-		}
-	}()
-	go func() {
-		for {
-			res, ok := m.queue.Dequeue()
-			if ok {
-				slog.Info("AAAAAAAAAAAAAAAAAAA", "операция:", res)
-			} else {
-				slog.Info("NOOOOOOOO")
-			}
-			time.Sleep(time.Second * 3)
-
 		}
 	}()
 }
