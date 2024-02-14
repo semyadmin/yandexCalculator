@@ -27,6 +27,10 @@ func NewExpression(a *arithmetic.ASTTree) Expression {
 		r.Expression = a.Expression + "=" + a.Value
 		r.Status = "completed"
 	}
+	if a.Err != nil {
+		r.Expression = a.Expression + "=error"
+		r.Status = "error"
+	}
 	a.Unlock()
 	return r
 }

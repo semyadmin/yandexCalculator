@@ -15,11 +15,11 @@ func Calculate(expression string) (string, error) {
 	id := array[0]
 	first, second, operation, err := parseExpression(array[1])
 	if err != nil {
-		return "", err
+		return id, err
 	}
 	duration, err := strconv.ParseFloat(array[2], 64)
 	if err != nil {
-		return "", err
+		return id, err
 	}
 	result := float64(0)
 	switch operation {
@@ -34,7 +34,7 @@ func Calculate(expression string) (string, error) {
 		result = first * second
 	case "/":
 		if second == 0 {
-			return "", errors.New("делить на ноль нельзя")
+			return id, errors.New("делить на ноль нельзя")
 		}
 		time.Sleep(time.Duration(duration) * time.Second)
 		result = first / second

@@ -231,6 +231,9 @@ func Upgrade(exp []byte) []byte {
 			}
 			array, index := upgradeMultiDivide(exp, i+1, left)
 			result = append(result, array...)
+			if index == len(exp) {
+				return result
+			}
 			operatorIndex = 0
 			if exp[index] == ')' {
 				return result
@@ -334,5 +337,5 @@ func upgradeMultiDivide(exp []byte, index int, left int) ([]byte, int) {
 	} else {
 		result = append(result, exp[left:]...)
 	}
-	return result, len(exp) - 1
+	return result, len(exp)
 }

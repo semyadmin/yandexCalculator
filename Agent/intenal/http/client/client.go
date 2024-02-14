@@ -2,6 +2,7 @@ package client
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"log/slog"
 	"net"
@@ -69,7 +70,7 @@ func (c *Client) calculate(expression string) {
 	result, err := calculate.Calculate(expression)
 	if err != nil {
 		slog.Error("ошибка вычисления выражения", "ошибка", err, "выражение", expression, "агент", c.id)
-		result = "error"
+		result = fmt.Sprint(result, " error ", err)
 	}
 	for {
 		conn, err := net.Dial("tcp", c.config.Host+":"+c.config.Port)

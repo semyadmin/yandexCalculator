@@ -74,9 +74,6 @@ func (m *MapQueue) Dequeue() (*SendInfo, bool) {
 
 func (m *MapQueue) Done(result string) {
 	array := strings.Split(result, " ")
-	if len(array) != 3 {
-		return
-	}
 	m.RLock()
 	data, ok := m.mapQueue[array[0]]
 	m.RUnlock()
