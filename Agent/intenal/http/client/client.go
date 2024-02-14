@@ -57,7 +57,9 @@ func (c *Client) Start() error {
 		return err
 	}
 	slog.Info("получено выражение от оркестратора", "выражение", expression, "агент", c.id)
+	c.config.WorkGoroutines.Add(1)
 	c.calculate(expression)
+	c.config.WorkGoroutines.Add(-1)
 	return nil
 }
 

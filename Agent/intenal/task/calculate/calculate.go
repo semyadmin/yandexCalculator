@@ -43,30 +43,20 @@ func Calculate(expression string) (string, error) {
 }
 
 func parseExpression(str string) (float64, float64, string, error) {
-	var split string
-	for i := 0; i < len(str); i++ {
-		switch str[i] {
-		case '+':
-			split = "+"
-		case '-':
-			split = "-"
-		case '*':
-			split = "*"
-		case '/':
-			split = "/"
+	split := 0
+	for i := 1; i < len(str); i++ {
+		if str[i] == '+' || str[i] == '-' || str[i] == '*' || str[i] == '/' {
+			split = i
+			break
 		}
 	}
-	array := strings.Split(str, split)
-	if len(array) != 2 {
-		return 0, 0, "", errors.New("неправильное выражение")
-	}
-	first, err := strconv.ParseFloat(array[0], 64)
+	first, err := strconv.ParseFloat(str[:split], 64)
 	if err != nil {
 		return 0, 0, "", err
 	}
-	second, err := strconv.ParseFloat(array[1], 64)
+	second, err := strconv.ParseFloat(str[split+1:], 64)
 	if err != nil {
 		return 0, 0, "", err
 	}
-	return first, second, split, nil
+	return first, second, string(str[split]), nil
 }

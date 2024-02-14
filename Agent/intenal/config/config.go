@@ -4,14 +4,16 @@ import (
 	"log/slog"
 	"os"
 	"strconv"
+	"sync/atomic"
 
 	"github.com/joho/godotenv"
 )
 
 type Config struct {
-	Host          string
-	Port          string
-	MaxGoroutines int
+	Host           string
+	Port           string
+	MaxGoroutines  int
+	WorkGoroutines atomic.Int64
 }
 
 type ConfigExpression struct {

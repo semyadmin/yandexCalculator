@@ -7,8 +7,6 @@ import (
 	"go/parser"
 	"go/token"
 	"strconv"
-
-	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/tasks/arithmetic"
 )
 
 func operate(litX, litY *ast.BasicLit, op token.Token) (*ast.BasicLit, error) {
@@ -119,13 +117,13 @@ func prefixNotation(n ast.Node) string {
 	return r
 }
 
-func main1() {
+func main() {
 	/*
 	   Usage:
 	           echo "(7+2+9)*2" | ./ast_sample
 	*/
 
-	exp := "2+2+2*2"
+	exp := "(1+2)*3+(4/5)*9+(10-100)"
 
 	tr, err := parser.ParseExpr(exp)
 	fmt.Println("te")
@@ -159,9 +157,4 @@ func main1() {
 
 	num, _ := strconv.ParseFloat("1.5", 64)
 	fmt.Println(num)
-}
-
-func main() {
-	result := arithmetic.Upgrade([]byte("1+2*2*3+9"))
-	fmt.Println(string(result))
 }

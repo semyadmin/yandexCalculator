@@ -35,7 +35,9 @@ type result struct {
 }
 
 func NewASTTree(expression string, config *config.Config, queue *queue.MapQueue) (*ASTTree, error) {
-	tr, err := parser.ParseExpr(expression)
+	upgradeExp := Upgrade([]byte(expression))
+	slog.Info("Усовершенствованное выражение", "выражение:", string(upgradeExp))
+	tr, err := parser.ParseExpr(string(upgradeExp))
 	if err != nil {
 		return nil, err
 	}

@@ -36,8 +36,15 @@ export default function CustomTabPanel(props) {
           end: response.data.End,
           status: response.data.Status
         }
-        const ids = answer.map(el => el.id)
-        if (ids.includes(res.id) == false) {
+        let change = false
+        answer.forEach(el => {
+          if (el.id == res.id) {
+            el.status = res.status
+            el.expression = res.expression
+            change = true
+          }
+        })
+        if (change == false) {
           setOpenSuccess(false)
           setTextSnackbarSuccess(`Выражение ${res.expression} успешно поставлено на обработку`)
           setOpenSuccess(true)
@@ -46,7 +53,21 @@ export default function CustomTabPanel(props) {
           setOpenSuccess(false)
           setTextSnackbarSuccess(`Выражение ${res.expression} уже обрабатывается`)
           setOpenSuccess(true)
+          setAnswer(answer)
         }
+        /*
+        const ids = answer.map(el => el.id)
+         if (ids.includes(res.id) == false) {
+          setOpenSuccess(false)
+          setTextSnackbarSuccess(`Выражение ${res.expression} успешно поставлено на обработку`)
+          setOpenSuccess(true)
+          setAnswer([...answer,res])
+        } else {
+          setOpenSuccess(false)
+          setTextSnackbarSuccess(`Выражение ${res.expression} уже обрабатывается`)
+          setOpenSuccess(true)
+        } 
+        */
       })
       .catch(error => {
         console.log(error)
