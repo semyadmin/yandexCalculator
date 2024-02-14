@@ -162,5 +162,5 @@ func main1() {
 }
 
 func main() {
-	fmt.Println(arithmetic.Upgrade("1+2+3*4*5*6+6*7"))
+	fmt.Println(arithmetic.Upgrade("3+1"))
 }
