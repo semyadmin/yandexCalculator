@@ -162,5 +162,6 @@ func main1() {
 }
 
 func main() {
-	fmt.Println(arithmetic.Upgrade("3+1"))
+	result := arithmetic.Upgrade([]byte("1+2*2*3+9"))
+	fmt.Println(string(result))
 }

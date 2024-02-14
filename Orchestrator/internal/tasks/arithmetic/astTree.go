@@ -2,7 +2,6 @@ package arithmetic
 
 import (
 	"errors"
-	"fmt"
 	"go/ast"
 	"go/parser"
 	"log/slog"
@@ -205,52 +204,96 @@ func calculate(resX, operator, resY string, parent *ASTTree, level string) resul
 	return res
 }
 
-func Upgrade(exp string) string {
+func Upgrade(exp []byte) []byte {
 	operatorIndex := 0
 	result := make([]byte, 0)
 	left := 0
-	for i := 1; i < len(exp)-1; i++ {
+	for i := 0; i < len(exp); i++ {
 		if exp[i] == '+' || exp[i] == '-' {
 			if exp[operatorIndex] == '+' || exp[operatorIndex] == '-' {
 				array := append([]byte{'('}, exp[left:i]...)
 				array = append(array, ')')
 				array = append(array, exp[i])
-				fmt.Println(string(array), "++++")
 				result = append(result, array...)
 				left = i + 1
 				operatorIndex = 0
 				continue
 			}
 			operatorIndex = i
+			continue
 		}
 		if exp[i] == '*' || exp[i] == '/' {
 			if operatorIndex > left {
 				result = append(result, exp[left:operatorIndex+1]...)
 				left = operatorIndex + 1
 			}
-			fmt.Println(string(result), "++++++")
 			array, index := upgradeMultiDivide(exp, i+1, left)
 			result = append(result, array...)
+			operatorIndex = 0
+			if exp[index] == ')' {
+				return result
+			}
+			if exp[index] == '(' {
+				left = index
+				i = index - 1
+				continue
+			}
 			i = index
 			left = i + 1
-			operatorIndex = 0
-			if index == len(exp)-1 {
+			if index == len(exp) {
 				break
 			}
 			result = append(result, exp[index])
+			continue
+		}
+		if exp[i] == '(' {
+			result = append(result, exp[left:i+1]...)
+			array := Upgrade(exp[i+1:])
+
+			result = append(result, array...)
+			closeBoarder := -1
+			for j := i + 1; j < len(exp); j++ {
+				if exp[j] == ')' {
+					closeBoarder++
+				}
+				if exp[j] == '(' {
+					closeBoarder--
+				}
+				if closeBoarder == 0 {
+					i = j
+					break
+				}
+			}
+			result = append(result, exp[i])
+			if i == len(exp)-1 {
+				return result
+			}
+			if exp[i+1] == '+' || exp[i+1] == '-' ||
+				exp[i+1] == '*' || exp[i+1] == '/' {
+				i = i + 1
+				result = append(result, exp[i])
+			}
+			left = i + 1
+			operatorIndex = 0
+			continue
+		}
+		if exp[i] == ')' {
+			result = append(result, exp[left:i]...)
+			return result
 		}
 	}
-	if exp[operatorIndex] == '+' || exp[operatorIndex] == '-' {
+	if operatorIndex != 0 {
 		array := append([]byte{'('}, exp[left:]...)
 		array = append(array, ')')
 		result = append(result, array...)
 	} else {
 		result = append(result, exp[left:]...)
 	}
-	return string(result)
+
+	return result
 }
 
-func upgradeMultiDivide(exp string, index int, left int) ([]byte, int) {
+func upgradeMultiDivide(exp []byte, index int, left int) ([]byte, int) {
 	result := make([]byte, 0)
 	openBorder := true
 	for i := index; i < len(exp)-1; i++ {
@@ -262,12 +305,12 @@ func upgradeMultiDivide(exp string, index int, left int) ([]byte, int) {
 				result = append(result, array...)
 				left = i + 1
 				openBorder = false
-				fmt.Println(string(result), "*****")
 				continue
 			}
 			openBorder = true
 		}
-		if exp[i] == '+' || exp[i] == '-' {
+		if exp[i] == '+' || exp[i] == '-' ||
+			exp[i] == ')' {
 			if openBorder {
 				array := append([]byte{'('}, exp[left:i]...)
 				array = append(array, ')')
@@ -275,7 +318,10 @@ func upgradeMultiDivide(exp string, index int, left int) ([]byte, int) {
 			} else {
 				result = append(result, exp[left:i]...)
 			}
-			fmt.Println(string(result), "*****")
+			return result, i
+		}
+		if exp[i] == '(' {
+			result = append(result, exp[left:i]...)
 			return result, i
 		}
 	}
