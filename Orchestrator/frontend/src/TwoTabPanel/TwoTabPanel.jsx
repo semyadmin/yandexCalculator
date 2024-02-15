@@ -31,6 +31,19 @@ export default function TwoTabPanel(props) {
   const onChangeDivide = (event) => {
     setDivide(event.target.value);
   }
+  React.useEffect(() => {
+    const getOperators = () => {
+      client
+        .get('duration')
+        .then((response) => {
+          setPlus(response.data.plus)
+          setMinus(response.data.minus)
+          setMulti(response.data.multi)
+          setDivide(response.data.divide)
+        })
+    }
+    getOperators()    
+  }, [])
   const sendOperators = () => {
     client
       .post('duration', {
@@ -78,46 +91,41 @@ export default function TwoTabPanel(props) {
       {value === index && (
         <Box sx={{ flexGrow: 1 }}>
           <Grid container spacing={2}>
-            <Grid sx={{m: 3}}>
+            <Grid sx={{m: 3}} item md={2}>
               <Typography variant="body1" gutterBottom>
                 Введите продолжительность для каждой операции<br />
                 Продолжительность измеряется в секундах!<br />
                 Данные могут быть целые числа от 0 до 9*10^18 <br/>
               </Typography>
               <TextField 
-                fullWidth
                 id="plus"
                 label="Значение для плюса"
                 value={plus}
-                sx={{ mt: 3, mb: 2 }}
+                sx={{ mt: 1, mb: 1 }}
                 onChange={onChangePlus}
               />
               <TextField 
-                fullWidth
                 id="plus"
                 label="Значение для минуса"
                 value={minus}
-                sx={{ mt: 3, mb: 2 }}
+                sx={{ mt: 1, mb: 1 }}
                 onChange={onChangeMinus}
               />
               <TextField 
-                fullWidth
                 id="plus"
                 label="Значение для умножить"
                 value={multi}
-                sx={{ mt: 3, mb: 2 }}
+                sx={{ mt: 1, mb: 1 }}
                 onChange={onChangeMulti}
               />
               <TextField 
-                fullWidth
                 id="plus"
                 label="Значение для разделить"
                 value={divide}
-                sx={{ mt: 3, mb: 2 }}
+                sx={{ mt: 1, mb: 1 }}
                 onChange={onChangeDivide}
               />
               <Button
-                fullWidth
                 variant="contained"
                 onClick={() => sendOperators()}
                 sx={{ mt: 3, mb: 2 }}
