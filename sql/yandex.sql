@@ -2,7 +2,7 @@ BEGIN;
 
 SET client_encoding = 'LATIN1';
 
-CREATE TABLE city (
+CREATE TABLE Expressions (
     id SERIAL,
     baseID BIGINT,
     Expression text NOT NULL,
@@ -11,10 +11,12 @@ CREATE TABLE city (
     CurrentResult text
 );
 
-CREATE TABLE config (
+CREATE TABLE Configs (
     id SERIAL,
     Plus BIGINT,
     Minus BIGINT,
     Multiply BIGINT,
     Divide BIGINT
 );
+
+COMMIT;
