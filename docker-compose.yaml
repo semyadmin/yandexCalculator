@@ -1,0 +1,19 @@
+version: '3'
+
+services:
+
+  orchestrator:
+    build:
+      context: .
+      dockerfile: ./Orchestrator/Dockerfile
+    ports:
+      -"8080:8080"
+      -"7777:7777"
+
+  agent:
+    build: 
+      context: .
+      dockerfile: ./Agent/Dockerfile
+    ports:
+      -"7777:7777"
+  
