@@ -12,13 +12,15 @@ RUN apk update && apk upgrade && \
 WORKDIR /app
 
 # Copy go mod and sum files
-COPY . .
+COPY ./Orchestrator/go.mod ./Orchestrator/go.sum ./
 
 # Download all dependancies. Dependencies will be cached if the go.mod and go.sum files are not changed
 RUN go mod download
 
+COPY ./Orchestrator .
+
 # Build the Go app
-RUN go build -o main .
+RUN go build cmd/orchestrator/main.go
 
 # Expose port 8080 to the outside world
 EXPOSE 8080 7777

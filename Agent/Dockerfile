@@ -12,16 +12,17 @@ RUN apk update && apk upgrade && \
 WORKDIR /app
 
 # Copy go mod and sum files
-COPY . .
+COPY ./Agent/go.mod ./Agent/go.sum ./
 
 # Download all dependancies. Dependencies will be cached if the go.mod and go.sum files are not changed
 RUN go mod download
 
+COPY ./Agent .
+
 # Build the Go app
-RUN go build -o main .
+RUN go build cmd/agent/main.go
 
 # Expose port 8080 to the outside world
-EXPOSE 8080
 
 # Run the executable
 CMD ["./main"]
