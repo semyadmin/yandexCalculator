@@ -24,7 +24,7 @@ type ASTTree struct {
 	queue      *queue.MapQueue
 	config     *config.Config
 	Start      time.Time
-	Duration   int
+	Duration   int64
 	Err        error
 	sync.Mutex
 }
@@ -70,11 +70,11 @@ func create(tr ast.Expr) *ASTTree {
 	return a
 }
 
-func duration(a *ASTTree, config *config.Config) int {
+func duration(a *ASTTree, config *config.Config) int64 {
 	if a == nil {
 		return 0
 	}
-	res := 0
+	res := int64(0)
 	if a.Operator == "+" {
 		res += config.Plus
 	}
@@ -178,7 +178,7 @@ func getResult(a *ASTTree, ch chan result, parent *ASTTree, level string) {
 
 func calculate(resX, operator, resY string, parent *ASTTree, level string) result {
 	resultCh := make(chan string)
-	deadline := int(0)
+	deadline := int64(0)
 	switch operator {
 	case "+":
 		deadline = parent.config.Plus

@@ -15,8 +15,6 @@ import (
 
 func main() {
 	conf := config.New()
-	conf.Plus = 20
-	conf.Multiply = 20
 	storage := memory.New(&config.ConfigExpression{})
 	newQueue := queue.NewMapQueue(queue.NewLockFreeQueue())
 	tcpServer, err := serverTCP.NewServer(":"+conf.TCPPort, conf, newQueue, storage)

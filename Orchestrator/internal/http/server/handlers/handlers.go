@@ -21,6 +21,7 @@ func NewServeMux(config *config.Config, queue *queue.MapQueue, storage *memory.S
 	// Регистрируем обработчики событий
 	patchToFront := "./frontend/build"
 	serveMux.Handle("/", http.FileServer(http.Dir(patchToFront)))
+	serveMux.HandleFunc("/duration", durationHandler(config))
 	serveMux.HandleFunc("/expression", expressionHandler(config, queue, storage))
 	serveMux.HandleFunc("/id/", getById)
 	return serveMux, nil
@@ -89,6 +90,35 @@ func expressionHandler(config *config.Config, queue *queue.MapQueue, storage *me
 			w.WriteHeader(http.StatusAccepted)
 			w.Write(answer)
 			slog.Info("Выражение добавлено в базу", "ответ:", string(answer))
+		}
+	}
+}
+
+func durationHandler(conf *config.Config) func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost {
+			newDuration := config.ConfigExpression{}
+			data, err := io.ReadAll(r.Body)
+			if err != nil {
+				slog.Error("Проблема с чтением данных:", "ошибка:", err)
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				return
+			}
+			slog.Info("Полученное время для операций от пользователя:", "данные:", string(data))
+			json.Unmarshal(data, &newDuration)
+			err = conf.NewDuration(&newDuration)
+			if err != nil {
+				slog.Error("Некорректное время:", "ошибка:", err)
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				return
+			}
+			data, err = json.Marshal(newDuration)
+			if err != nil {
+				slog.Error("Невозможно сериализовать данные:", "ошибка:", err)
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+			}
+			slog.Info("Время для операций обновлено и отправлено", "новое время:", newDuration)
+			w.Write(data)
 		}
 	}
 }
