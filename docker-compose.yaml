@@ -19,6 +19,19 @@ services:
       replicas: 3
     networks:
       - orchesterator
+  db:
+    image: adminsemy/yandex_calculator_postrgrees
+    container_name: db_orchesterator
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    networks:
+      - orchesterator
+
 
 networks:
   orchesterator:
+
+volumes:
+  db_data:
