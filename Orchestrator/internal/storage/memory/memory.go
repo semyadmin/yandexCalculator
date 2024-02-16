@@ -20,16 +20,14 @@ type Storage struct {
 	exists map[uint64]string
 	queue  *list.List
 	mutex  sync.Mutex
-	nextID uint64
-	config *config.ConfigExpression
+	config *config.Config
 }
 
-func New(config *config.ConfigExpression) *Storage {
+func New(config *config.Config) *Storage {
 	return &Storage{
 		data:   make(map[string]*list.Element),
 		exists: make(map[uint64]string),
 		queue:  list.New(),
-		nextID: 0,
 		config: config,
 	}
 }
@@ -42,12 +40,15 @@ func (s *Storage) Set(data *arithmetic.ASTTree, status string) {
 		data.Value = dataInfo
 		return
 	}
-	s.nextID++
+	s.config.Lock()
+	s.config.MaxID++
+	nextId := s.config.MaxID
+	s.config.Unlock()
 	newDataInfo := DataInfo{
 		Expression: data,
-		Id:         s.nextID,
+		Id:         nextId,
 	}
-	data.SetID(s.nextID)
+	data.SetID(nextId)
 	go data.Calculate()
 	newElement := s.queue.PushBack(newDataInfo)
 	s.data[data.GetExpression()] = newElement

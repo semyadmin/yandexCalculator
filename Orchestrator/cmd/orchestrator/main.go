@@ -10,13 +10,15 @@ import (
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/http/server"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/storage/memory"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/storage/postgresql/postgresql_ast"
+	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/storage/postgresql/postgresql_config"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/tasks/queue"
 	serverTCP "github.com/adminsemy/yandexCalculator/Orchestrator/internal/tcp/server"
 )
 
 func main() {
 	conf := config.New()
-	storage := memory.New(&config.ConfigExpression{})
+	postgresql_config.Load(conf)
+	storage := memory.New(conf)
 	newQueue := queue.NewMapQueue(queue.NewLockFreeQueue(), conf)
 	postgresql_ast.GetAll(conf, newQueue, storage)
 	postgresql_ast.Update(conf, newQueue, storage)

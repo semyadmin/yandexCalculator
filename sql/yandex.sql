@@ -17,6 +17,7 @@ CREATE TABLE Configs (
     Minus BIGINT,
     Multiply BIGINT,
     Divide BIGINT
+    MaxID BIGINT,
 );
 
 COMMIT;

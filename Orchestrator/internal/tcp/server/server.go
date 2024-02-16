@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -77,11 +78,53 @@ func (s *server) handleConnections() {
 
 func (s *server) handleConnection(conn net.Conn) {
 	defer conn.Close()
+	defer s.config.AgentsAll.Add(-1)
 	buf := make([]byte, 512)
 	n, err := conn.Read(buf)
 	if !errors.Is(io.EOF, err) && err != nil {
 		slog.Info("Клиент отключился", "ошибка:", err)
 		return
+	}
+	if string(buf[:n]) == "ping" {
+		workers := int64(0)
+		workersBusy := int64(0)
+		n, err = conn.Write([]byte("pong"))
+		if err != nil && n < len("pong") {
+			slog.Info("Клиент отключился", "ошибка:", err)
+			return
+		}
+		s.config.AgentsAll.Add(1)
+		for {
+			conn.SetDeadline(time.Now().Add(10 * time.Second))
+			n, err := conn.Read(buf)
+			if !errors.Is(io.EOF, err) && err != nil {
+				slog.Info("Клиент ping pong отключился", "ошибка:", err)
+				s.config.WorkersAll.Add(-workers)
+				s.config.WorkersBusy.Add(-workersBusy)
+				return
+			}
+			data := string(buf[:n])
+			array := strings.Split(data, " ")
+			newWorkers, err := strconv.ParseInt(array[0], 10, 64)
+			if err != nil {
+				slog.Info("Клиент ping pong отключился", "ошибка:", err)
+				s.config.WorkersAll.Add(-workers)
+				s.config.WorkersBusy.Add(-workersBusy)
+				return
+			}
+			workers = newWorkers - workers
+			s.config.WorkersAll.Add(workers)
+			newWorkersBusy, err := strconv.ParseInt(array[1], 10, 64)
+			if err != nil {
+				slog.Info("Клиент ping pong отключился", "ошибка:", err)
+				s.config.WorkersAll.Add(-workers)
+				s.config.WorkersBusy.Add(-workersBusy)
+				return
+			}
+			workersBusy = newWorkersBusy - workersBusy
+			s.config.WorkersBusy.Add(workersBusy)
+			time.Sleep(1 * time.Second)
+		}
 	}
 	if string(buf[:n]) == "result" {
 		n, err = conn.Write([]byte("ok"))

@@ -5,6 +5,7 @@ import (
 	"os"
 	"strconv"
 	"sync"
+	"sync/atomic"
 
 	"github.com/joho/godotenv"
 )
@@ -13,19 +14,23 @@ var ErrWrongDuration = errors.New("Некорректное время для о
 
 // Config - конфигурация приложения
 type Config struct {
-	Host     string
-	HttpPort string
-	TCPPort  string
-	Db       string
-	DbName   string
-	DbPort   string
-	DbUser   string
-	DbPass   string
-	Plus     int64
-	Minus    int64
-	Multiply int64
-	Divide   int64
-	MaxID    uint64
+	Id          int64
+	Host        string
+	HttpPort    string
+	TCPPort     string
+	Db          string
+	DbName      string
+	DbPort      string
+	DbUser      string
+	DbPass      string
+	Plus        int64
+	Minus       int64
+	Multiply    int64
+	Divide      int64
+	MaxID       uint64
+	AgentsAll   atomic.Int64
+	WorkersAll  atomic.Int64
+	WorkersBusy atomic.Int64
 	sync.Mutex
 }
 
@@ -79,6 +84,8 @@ func New() *Config {
 }
 
 func (c *Config) NewDuration(conf *ConfigExpression) error {
+	c.Lock()
+	defer c.Unlock()
 	num, err := parseStringToInt(conf.Plus)
 	if err != nil || num < 0 {
 		return ErrWrongDuration
@@ -104,6 +111,8 @@ func (c *Config) NewDuration(conf *ConfigExpression) error {
 }
 
 func (c *ConfigExpression) Init(conf *Config) {
+	conf.Lock()
+	defer conf.Unlock()
 	c.Plus = strconv.FormatInt(int64(conf.Plus), 10)
 	c.Minus = strconv.FormatInt(int64(conf.Minus), 10)
 	c.Multiply = strconv.FormatInt(int64(conf.Multiply), 10)

@@ -13,7 +13,7 @@ func main() {
 	config := config.New()
 	done := make(chan os.Signal, 1)
 	signal.Notify(done, os.Interrupt)
-
+	go client.Ping(config)
 	for i := 0; i < config.MaxGoroutines; i++ {
 		go func(id int) {
 			for {
