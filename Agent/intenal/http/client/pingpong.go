@@ -41,6 +41,13 @@ func Ping(conf *config.Config) {
 				if err != nil {
 					break
 				}
+				n, err = conn.Read(buf)
+				if !errors.Is(io.EOF, err) && err != nil {
+					break
+				}
+				if string(buf[:n]) != "done" {
+					break
+				}
 			}
 			conn.Close()
 		}

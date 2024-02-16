@@ -104,6 +104,7 @@ func (s *server) handleConnection(conn net.Conn) {
 				return
 			}
 			data := string(buf[:n])
+
 			array := strings.Split(data, " ")
 			newWorkers, err := strconv.ParseInt(array[0], 10, 64)
 			if err != nil {
@@ -123,7 +124,13 @@ func (s *server) handleConnection(conn net.Conn) {
 			}
 			workersBusy = newWorkersBusy - workersBusy
 			s.config.WorkersBusy.Add(workersBusy)
-			time.Sleep(1 * time.Second)
+			time.Sleep(3 * time.Second)
+			n, err = conn.Write([]byte("done"))
+			if err != nil && n < len("pong") {
+				slog.Info("Клиент отключился", "ошибка:", err)
+				return
+			}
+
 		}
 	}
 	if string(buf[:n]) == "result" {

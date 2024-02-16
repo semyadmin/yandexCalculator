@@ -119,7 +119,6 @@ func GetAll(conf *config.Config, q *queue.MapQueue, m *memory.Storage) {
 func Update(conf *config.Config, q *queue.MapQueue, m *memory.Storage) {
 	go func() {
 		for {
-			db := postgresql.DbConnect(conf)
 			q.Lock()
 			items := []string{}
 			for item := range q.Update {
@@ -131,6 +130,7 @@ func Update(conf *config.Config, q *queue.MapQueue, m *memory.Storage) {
 				time.Sleep(1 * time.Second)
 				continue
 			}
+			db := postgresql.DbConnect(conf)
 			for _, item := range items {
 				data, err := m.GeByExpression(item)
 				if err != nil {

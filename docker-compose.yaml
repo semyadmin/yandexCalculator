@@ -20,7 +20,9 @@ services:
     networks:
       - orchesterator
   db:
-    image: adminsemy/yandex_calculator_postrgrees
+    build:
+      context: .
+      dockerfile: Dockerfile
     container_name: db_orchesterator
     volumes:
       - db_data:/var/lib/postgresql/data
