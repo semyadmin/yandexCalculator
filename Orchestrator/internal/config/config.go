@@ -4,6 +4,7 @@ import (
 	"errors"
 	"os"
 	"strconv"
+	"sync"
 
 	"github.com/joho/godotenv"
 )
@@ -15,10 +16,17 @@ type Config struct {
 	Host     string
 	HttpPort string
 	TCPPort  string
+	Db       string
+	DbName   string
+	DbPort   string
+	DbUser   string
+	DbPass   string
 	Plus     int64
 	Minus    int64
 	Multiply int64
 	Divide   int64
+	MaxID    uint64
+	sync.Mutex
 }
 
 type ConfigExpression struct {
@@ -29,25 +37,44 @@ type ConfigExpression struct {
 }
 
 func New() *Config {
+	godotenv.Load("./config/.env")
 	httpPort := os.Getenv("ORCHESTRATOR_HTTP_PORT")
 	tcpPort := os.Getenv("ORCHESTRATOR_TCP_PORT")
-	godotenv.Load("./config/.env")
+	db := os.Getenv("ORCHESTRATOR_DB")
+	dbName := os.Getenv("ORCHESTRATOR_DB_NAME")
+	dbPort := os.Getenv("ORCHESTRATOR_DB_PORT")
+	dbUser := os.Getenv("ORCHESTRATOR_DB_USER")
+	dbPassword := os.Getenv("ORCHESTRATOR_DB__PASSWORD")
 	if httpPort == "" {
-		httpPort = os.Getenv("ORCHESTRATOR_HTTP_PORT")
-		if httpPort == "" {
-			httpPort = "8080"
-		}
+		httpPort = "8080"
 	}
 	if tcpPort == "" {
-		tcpPort = os.Getenv("ORCHESTRATOR_TCP_PORT")
-		if tcpPort == "" {
-			tcpPort = "7777"
-		}
+		tcpPort = "7777"
+	}
+	if db == "" {
+		tcpPort = "localhost"
+	}
+	if dbName == "" {
+		dbName = "orchestrator"
+	}
+	if dbPort == "" {
+		dbPort = "5432"
+	}
+	if dbUser == "" {
+		dbUser = "postgres"
+	}
+	if dbPassword == "" {
+		dbPassword = "postgres"
 	}
 	return &Config{
 		Host:     "localhost",
 		HttpPort: httpPort,
 		TCPPort:  tcpPort,
+		Db:       db,
+		DbName:   dbName,
+		DbPort:   dbPort,
+		DbUser:   dbUser,
+		DbPass:   dbPassword,
 	}
 }
 

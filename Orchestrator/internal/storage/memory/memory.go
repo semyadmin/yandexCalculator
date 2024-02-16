@@ -54,6 +54,27 @@ func (s *Storage) Set(data *arithmetic.ASTTree, status string) {
 	s.exists[newDataInfo.Id] = data.GetExpression()
 }
 
+func (s *Storage) SetFromDb(data *arithmetic.ASTTree, status string) {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	if data, ok := s.data[data.GetExpression()]; ok {
+		dataInfo := data.Value.(DataInfo)
+		if dataInfo.Expression.Value == data.Value {
+			return
+		}
+		data.Value = data
+		return
+	}
+	newDataInfo := DataInfo{
+		Expression: data,
+		Id:         data.ID,
+	}
+	go data.Calculate()
+	newElement := s.queue.PushBack(newDataInfo)
+	s.data[data.GetExpression()] = newElement
+	s.exists[newDataInfo.Id] = data.GetExpression()
+}
+
 func (s *Storage) GeByExpression(expression string) (DataInfo, error) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()

@@ -15,7 +15,10 @@ import (
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/validator"
 )
 
-func NewServeMux(config *config.Config, queue *queue.MapQueue, storage *memory.Storage) (http.Handler, error) {
+func NewServeMux(config *config.Config,
+	queue *queue.MapQueue,
+	storage *memory.Storage,
+) (http.Handler, error) {
 	// Создам маршрутизатор
 	serveMux := http.NewServeMux()
 	// Регистрируем обработчики событий
@@ -40,7 +43,10 @@ func getById(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(r.URL.Path)
 }
 
-func expressionHandler(config *config.Config, queue *queue.MapQueue, storage *memory.Storage) func(w http.ResponseWriter, r *http.Request) {
+func expressionHandler(config *config.Config,
+	queue *queue.MapQueue,
+	storage *memory.Storage,
+) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodPost {
 			type Expression interface {
@@ -80,7 +86,7 @@ func expressionHandler(config *config.Config, queue *queue.MapQueue, storage *me
 				http.Error(w, err.Error(), http.StatusBadRequest)
 				return
 			}
-			// Сохраняем в базу
+			// Сохраняем в память
 			storage.Set(exp, "new")
 			resp := responseStruct.NewExpression(exp)
 			answer, err := json.Marshal(resp)

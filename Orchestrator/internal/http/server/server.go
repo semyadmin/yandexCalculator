@@ -12,7 +12,11 @@ import (
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/tasks/queue"
 )
 
-func Run(ctx context.Context, config *config.Config, queue *queue.MapQueue, storage *memory.Storage) (func(context.Context) error, error) {
+func Run(ctx context.Context,
+	config *config.Config,
+	queue *queue.MapQueue,
+	storage *memory.Storage,
+) (func(context.Context) error, error) {
 	// Инициализируем маршрутизатор
 	serveMux, err := handlers.NewServeMux(config, queue, storage)
 	if err != nil {

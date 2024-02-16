@@ -9,6 +9,7 @@ import (
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/config"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/http/server"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/storage/memory"
+	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/storage/postgresql/postgresql_ast"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/tasks/queue"
 	serverTCP "github.com/adminsemy/yandexCalculator/Orchestrator/internal/tcp/server"
 )
@@ -16,7 +17,9 @@ import (
 func main() {
 	conf := config.New()
 	storage := memory.New(&config.ConfigExpression{})
-	newQueue := queue.NewMapQueue(queue.NewLockFreeQueue())
+	newQueue := queue.NewMapQueue(queue.NewLockFreeQueue(), conf)
+	postgresql_ast.GetAll(conf, newQueue, storage)
+	postgresql_ast.Update(conf, newQueue, storage)
 	tcpServer, err := serverTCP.NewServer(":"+conf.TCPPort, conf, newQueue, storage)
 	if err != nil {
 		slog.Error("Ошибка запуска TCP/IP сервера:", "ошибка:", err)

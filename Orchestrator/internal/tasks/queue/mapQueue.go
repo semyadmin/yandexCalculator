@@ -6,6 +6,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/config"
 )
 
 type SendInfo struct {
@@ -16,8 +18,11 @@ type SendInfo struct {
 }
 type MapQueue struct {
 	sync.RWMutex
-	mapQueue map[string]Data
-	queue    *LockFreeQueue
+	mapQueue  map[string]Data
+	doneQueue map[string]string
+	Update    map[string]string
+	queue     *LockFreeQueue
+	c         *config.Config
 }
 
 type Data struct {
@@ -27,10 +32,13 @@ type Data struct {
 	result       string
 }
 
-func NewMapQueue(queue *LockFreeQueue) *MapQueue {
+func NewMapQueue(queue *LockFreeQueue, c *config.Config) *MapQueue {
 	m := &MapQueue{
-		queue:    queue,
-		mapQueue: make(map[string]Data),
+		queue:     queue,
+		mapQueue:  make(map[string]Data),
+		doneQueue: make(map[string]string),
+		Update:    make(map[string]string),
+		c:         c,
 	}
 	go m.checkTime()
 	return m
@@ -38,6 +46,11 @@ func NewMapQueue(queue *LockFreeQueue) *MapQueue {
 
 func (m *MapQueue) Enqueue(exp *SendInfo) {
 	m.RLock()
+	if data, ok := m.doneQueue[exp.Id]; ok {
+		exp.Result <- data
+		m.RUnlock()
+		return
+	}
 	data, ok := m.mapQueue[exp.Id]
 	m.RUnlock()
 	if ok {
@@ -92,8 +105,10 @@ func (m *MapQueue) Done(result string) {
 	}
 	m.Lock()
 	delete(m.mapQueue, array[0])
+	m.doneQueue[data.Exp.Id] = array[1]
 	m.Unlock()
 	data.Exp.Result <- array[1]
+	m.Update[data.Exp.Id] = array[1]
 }
 
 func (m *MapQueue) Len() int {
@@ -112,9 +127,11 @@ func (m *MapQueue) checkTime() {
 			}
 			m.RUnlock()
 			for _, data := range array {
-				if data.Exp != nil && time.Now().After(data.TimeDeadLine) {
-					slog.Info("Операция не обработана вовремя", "операция:", data.Exp)
-					m.Enqueue(data.Exp)
+				if time.Now().After(data.TimeDeadLine) {
+					if data.Exp != nil {
+						slog.Info("Операция не обработана вовремя", "операция:", data.Exp)
+						m.Enqueue(data.Exp)
+					}
 				}
 			}
 			time.Sleep(time.Second * 5)
