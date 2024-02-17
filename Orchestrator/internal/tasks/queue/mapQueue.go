@@ -141,3 +141,13 @@ func (m *MapQueue) checkTime() {
 		}
 	}()
 }
+
+func (m *MapQueue) GetQueue() []string {
+	m.RLock()
+	array := make([]string, 0, len(m.mapQueue))
+	for _, data := range m.mapQueue {
+		array = append(array, data.Exp.Expression)
+	}
+	m.RUnlock()
+	return array
+}

@@ -35,9 +35,10 @@ type Config struct {
 }
 
 type Workers struct {
-	Agents      int64 `json:"agents"`
-	Workers     int64 `json:"workers"`
-	WorkersBusy int64 `json:"workersBusy"`
+	Agents      int64    `json:"agents"`
+	Workers     int64    `json:"workers"`
+	WorkersBusy int64    `json:"workersBusy"`
+	Expressions []string `json:"expressions"`
 }
 
 type ConfigExpression struct {

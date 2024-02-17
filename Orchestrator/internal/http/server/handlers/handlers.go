@@ -29,7 +29,7 @@ func NewServeMux(config *config.Config,
 	serveMux.HandleFunc("/duration", durationHandler(config))
 	serveMux.HandleFunc("/expression", expressionHandler(config, queue, storage))
 	serveMux.HandleFunc("/id/", getById)
-	serveMux.HandleFunc("/workers", getWorkers(config))
+	serveMux.HandleFunc("/workers", getWorkers(config, queue))
 	return serveMux, nil
 }
 
@@ -46,7 +46,7 @@ func getById(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(r.URL.Path)
 }
 
-func getWorkers(conf *config.Config) func(w http.ResponseWriter, r *http.Request) {
+func getWorkers(conf *config.Config, q *queue.MapQueue) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodGet {
 			newWorkers := config.Workers{
@@ -54,11 +54,14 @@ func getWorkers(conf *config.Config) func(w http.ResponseWriter, r *http.Request
 				Workers:     conf.WorkersAll.Load(),
 				WorkersBusy: conf.WorkersBusy.Load(),
 			}
+			array := q.GetQueue()
+			newWorkers.Expressions = array
 			data, err := json.Marshal(newWorkers)
 			if err != nil {
 				slog.Error("Невозможно сериализовать данные:", "ошибка:", err)
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 			}
+
 			w.Write(data)
 		}
 	}
