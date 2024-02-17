@@ -19,7 +19,7 @@ import ThreeTabPanel from '../ThreeTabPanel/ThreeTabPanel';
           <Tabs value={value} onChange={handleChange} aria-label="basic tabs example">
             <Tab label="Рассчитать выражение" />
             <Tab label="Установить продолжительность" />
-            <Tab label="Мониторинг рабочих агентов и их воркеров"  />
+            <Tab label="Мониторинг рабочих агентов"  />
           </Tabs>
         </Box>
         <CustomTabPanel value={value} index={0} client={client} />

@@ -15,7 +15,7 @@ export default function ThreeTabPanel(props) {
 
   React.useEffect(() => {
     const getChargersData = () => {
-      client.get('/api/workers')
+      client.get('/workers')
         .then(response => {
           setAgents(response.data.agents);
           setWorkers(response.data.workers);
