@@ -4,6 +4,7 @@ import Tab from '@mui/material/Tab';
 import Box from '@mui/material/Box';
 import CustomTabPanel from '../CustomTabPanel/CustomTabPanel';
 import TwoTabPanel from '../TwoTabPanel/TwoTabPanel';
+import ThreeTabPanel from '../ThreeTabPanel/ThreeTabPanel';
   
   export default function BasicTabs({client}) {
     const [value, setValue] = React.useState(0);
@@ -18,11 +19,12 @@ import TwoTabPanel from '../TwoTabPanel/TwoTabPanel';
           <Tabs value={value} onChange={handleChange} aria-label="basic tabs example">
             <Tab label="Рассчитать выражение" />
             <Tab label="Установить продолжительность" />
-            <Tab label="Item Three"  />
+            <Tab label="Мониторинг рабочих агентов и их воркеров"  />
           </Tabs>
         </Box>
         <CustomTabPanel value={value} index={0} client={client} />
         <TwoTabPanel value={value} index={1} client={client} />
+        <ThreeTabPanel value={value} index={2} client={client} />
       </Box>
     );
   }

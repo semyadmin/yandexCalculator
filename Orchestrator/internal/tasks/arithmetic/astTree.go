@@ -194,6 +194,7 @@ func calculate(resX, operator, resY string, parent *ASTTree, level string) resul
 		Expression: resX + operator + resY,
 		Result:     resultCh,
 		Deadline:   uint64(deadline),
+		IdExp:      parent.Expression,
 	}
 	parent.queue.Enqueue(send)
 	res := result{}
@@ -301,7 +302,7 @@ func Upgrade(exp []byte) []byte {
 func upgradeMultiDivide(exp []byte, index int, left int) ([]byte, int) {
 	result := make([]byte, 0)
 	openBorder := true
-	for i := index; i < len(exp)-1; i++ {
+	for i := index; i < len(exp); i++ {
 		if exp[i] == '*' || exp[i] == '/' {
 			if openBorder {
 				array := append([]byte{'('}, exp[left:i]...)

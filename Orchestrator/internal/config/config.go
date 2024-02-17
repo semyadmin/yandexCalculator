@@ -34,6 +34,12 @@ type Config struct {
 	sync.Mutex
 }
 
+type Workers struct {
+	Agents      int64 `json:"agents"`
+	Workers     int64 `json:"workers"`
+	WorkersBusy int64 `json:"workersBusy"`
+}
+
 type ConfigExpression struct {
 	Plus     string `json:"plus"`
 	Minus    string `json:"minus"`

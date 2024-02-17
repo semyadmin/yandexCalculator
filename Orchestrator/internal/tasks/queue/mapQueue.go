@@ -15,12 +15,13 @@ type SendInfo struct {
 	Expression string
 	Result     chan string
 	Deadline   uint64
+	IdExp      string
 }
 type MapQueue struct {
 	sync.RWMutex
 	mapQueue  map[string]Data
 	doneQueue map[string]string
-	Update    map[string]string
+	Update    map[string]struct{}
 	queue     *LockFreeQueue
 	c         *config.Config
 }
@@ -37,7 +38,7 @@ func NewMapQueue(queue *LockFreeQueue, c *config.Config) *MapQueue {
 		queue:     queue,
 		mapQueue:  make(map[string]Data),
 		doneQueue: make(map[string]string),
-		Update:    make(map[string]string),
+		Update:    make(map[string]struct{}),
 		c:         c,
 	}
 	go m.checkTime()
@@ -108,7 +109,9 @@ func (m *MapQueue) Done(result string) {
 	m.doneQueue[data.Exp.Id] = array[1]
 	m.Unlock()
 	data.Exp.Result <- array[1]
-	m.Update[data.Exp.Id] = array[1]
+	m.Lock()
+	m.Update[data.Exp.IdExp] = struct{}{}
+	m.Unlock()
 }
 
 func (m *MapQueue) Len() int {

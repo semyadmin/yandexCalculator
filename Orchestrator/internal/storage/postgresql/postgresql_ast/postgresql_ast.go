@@ -1,6 +1,7 @@
 package postgresql_ast
 
 import (
+	"database/sql"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -43,17 +44,29 @@ func Add(model *arithmetic.ASTTree, conf *config.Config) {
 		if err != nil {
 			return
 		}
+		model.Lock()
+		astBaseID := model.ID
+		astExp := model.Expression
+		astValue := model.Value
+		astErr := model.Err
+		astCurrentRes := arithmetic.PrintExpression(model)
+		model.Unlock()
+
 		currentErr := false
-		if model.Err != nil {
+		if astErr != nil {
 			currentErr = true
 		}
-		sqlPrepare.Query(
-			model.ID,
-			model.Expression,
-			model.Value,
+		_, err = sqlPrepare.Query(
+			astBaseID,
+			astExp,
+			astValue,
 			currentErr,
-			arithmetic.PrintExpression(model),
+			astCurrentRes,
 		)
+		if err != nil {
+			slog.Info("Не удалось добавить запись в базу данных", "ошибка:", err)
+			return
+		}
 		slog.Info("Добавление записи в базу данных", "выражение:", model.Expression)
 	}()
 }
@@ -61,21 +74,22 @@ func Add(model *arithmetic.ASTTree, conf *config.Config) {
 func GetByExpression(exp string, conf *config.Config) (bool, error) {
 	db := postgresql.DbConnect(conf)
 	defer db.Close()
-	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s = $1", expression, tableName, exp)
-	sql, err := db.Prepare(query)
+	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s = $1 LIMIT 1", expression, tableName, expression)
+	sqlPrepare, err := db.Prepare(query)
 	if err != nil {
 		return false, err
 	}
-	row := sql.QueryRow(query)
+	row := sqlPrepare.QueryRow(exp)
 	result := ""
 	err = row.Scan(&result)
+	if errors.Is(err, sql.ErrNoRows) {
+		return false, nil
+	}
 	if err != nil {
+		slog.Info("Не удалось отсканировать запись из базы данных", "ОШИБКА:", err)
 		return false, err
 	}
-	if result != "" {
-		return true, nil
-	}
-	return false, nil
+	return true, nil
 }
 
 // GetAll — получает все записи из базы данных
@@ -141,6 +155,7 @@ func Update(conf *config.Config, q *queue.MapQueue, m *memory.Storage) {
 					continue
 				}
 				ast.Lock()
+				slog.Info("Получено выражение для обновления в базе", "выражение:", ast.Expression)
 				astBaseID := ast.ID
 				astExp := ast.Expression
 				astValue := ast.Value

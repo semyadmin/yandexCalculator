@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/config"
+	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/storage/postgresql/postgresql_config"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/tasks/arithmetic"
 )
 
@@ -32,6 +33,7 @@ func New(config *config.Config) *Storage {
 	}
 }
 
+// Сохраняем выражение в память
 func (s *Storage) Set(data *arithmetic.ASTTree, status string) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
@@ -44,6 +46,8 @@ func (s *Storage) Set(data *arithmetic.ASTTree, status string) {
 	s.config.MaxID++
 	nextId := s.config.MaxID
 	s.config.Unlock()
+	// Сохраняем в базу максимальный номер
+	postgresql_config.Save(s.config)
 	newDataInfo := DataInfo{
 		Expression: data,
 		Id:         nextId,

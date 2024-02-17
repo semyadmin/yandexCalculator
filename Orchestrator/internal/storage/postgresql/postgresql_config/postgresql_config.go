@@ -34,7 +34,7 @@ func Save(conf *config.Config) {
 		defer db.Close()
 		query := fmt.Sprintf(`
 		UPDATE %s
-		SET %s = $1, %s = $2, %s = $3, %s = $4, %s = $4
+		SET %s = $1, %s = $2, %s = $3, %s = $4, %s = $5
 		WHERE id = 1`, tableName, plus, minus, multiply, divide, maxid)
 		sqlPrepare, err := db.Prepare(query)
 		defer sqlPrepare.Close()
@@ -43,7 +43,7 @@ func Save(conf *config.Config) {
 		}
 		newConf := Conf{}
 		newConf.Init(conf)
-		res, err := sqlPrepare.Query(
+		_, err = sqlPrepare.Query(
 			newConf.Plus,
 			newConf.Minus,
 			newConf.Multiply,
@@ -51,15 +51,9 @@ func Save(conf *config.Config) {
 			newConf.MaxID,
 		)
 		if err != nil {
+			slog.Info("Не удалось обновить конфигурацию", "ошибка:", err)
 			return
 		}
-		res.Scan(
-			&newConf.Plus,
-			&newConf.Minus,
-			&newConf.Multiply,
-			&newConf.Divide,
-			&newConf.MaxID,
-		)
 
 		slog.Info("Обновлена запись конфигурации", "конфиг:", newConf)
 	}()
