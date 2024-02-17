@@ -11,7 +11,8 @@ export default function ThreeTabPanel(props) {
   const [agents, setAgents] = React.useState("0");
   const [workers, setWorkers] = React.useState("0");
   const [workersBusy, setWorkersBusy] = React.useState("0");
-
+  const [expressions, setExpressions] = React.useState([]);
+  
 
   React.useEffect(() => {
     const getChargersData = () => {
@@ -21,6 +22,7 @@ export default function ThreeTabPanel(props) {
           setWorkers(response.data.workers);
           setWorkers(response.data.workers);
           setWorkersBusy(response.data.workersBusy);
+          setExpressions(response.data.expressions);
         })
     }
     getChargersData()
@@ -45,6 +47,10 @@ export default function ThreeTabPanel(props) {
                 Агентов: {agents}<br />
                 Воркеров: {workers}<br/>
                 Занятых воркеров: {workersBusy}<br/>
+                Обрабатываемые операции:<br />
+                {expressions.map(el => (
+                  <p>{el}</p>
+                ))}
               </Typography>
             </Grid>
           </Grid>

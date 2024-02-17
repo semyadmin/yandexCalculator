@@ -2,10 +2,10 @@ package handlers
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
+	"strconv"
 
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/config"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/storage/memory"
@@ -28,7 +28,7 @@ func NewServeMux(config *config.Config,
 	serveMux.Handle("/", http.FileServer(http.Dir(patchToFront)))
 	serveMux.HandleFunc("/duration", durationHandler(config))
 	serveMux.HandleFunc("/expression", expressionHandler(config, queue, storage))
-	serveMux.HandleFunc("/id/", getById)
+	serveMux.HandleFunc("/id/", getById(storage))
 	serveMux.HandleFunc("/workers", getWorkers(config, queue))
 	return serveMux, nil
 }
@@ -42,8 +42,30 @@ func Decorate(next http.Handler, middleware ...func(http.Handler) http.Handler) 
 	return decorated
 }
 
-func getById(w http.ResponseWriter, r *http.Request) {
-	fmt.Println(r.URL.Path)
+func getById(storage *memory.Storage) func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		patch := r.URL.Path
+		id, err := strconv.ParseUint(patch[len("/id/"):], 10, 64)
+		if err != nil {
+			slog.Error("Невозможно распарсить ID:", "ОШИБКА:", err)
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		exp, err := storage.GeById(id)
+		if err != nil {
+			slog.Error("Невозможно получить данные по ID:", "ОШИБКА:", err, "ID:", id)
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		resp := responseStruct.NewExpression(exp.Expression)
+		data, err := json.Marshal(resp)
+		if err != nil {
+			slog.Error("Невозможно сериализовать данные:", "ОШИБКА:", err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.Write(data)
+	}
 }
 
 func getWorkers(conf *config.Config, q *queue.MapQueue) func(w http.ResponseWriter, r *http.Request) {
@@ -60,6 +82,7 @@ func getWorkers(conf *config.Config, q *queue.MapQueue) func(w http.ResponseWrit
 			if err != nil {
 				slog.Error("Невозможно сериализовать данные:", "ошибка:", err)
 				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
 			}
 
 			w.Write(data)
@@ -117,6 +140,7 @@ func expressionHandler(config *config.Config,
 			answer, err := json.Marshal(resp)
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
 			}
 			w.WriteHeader(http.StatusAccepted)
 			w.Write(answer)
@@ -147,6 +171,7 @@ func durationHandler(conf *config.Config) func(w http.ResponseWriter, r *http.Re
 			if err != nil {
 				slog.Error("Невозможно сериализовать данные:", "ошибка:", err)
 				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
 			}
 			// Сохраняем в базу
 			postgresql_config.Save(conf)
@@ -160,6 +185,7 @@ func durationHandler(conf *config.Config) func(w http.ResponseWriter, r *http.Re
 			if err != nil {
 				slog.Error("Невозможно сериализовать данные:", "ошибка:", err)
 				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
 			}
 			w.Write(data)
 		}

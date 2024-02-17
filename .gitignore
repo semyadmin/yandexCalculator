@@ -19,3 +19,4 @@
 db_data/
 # Go workspace file
 go.work
+Distrib/

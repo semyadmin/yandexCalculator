@@ -96,6 +96,7 @@ func GetByExpression(exp string, conf *config.Config) (bool, error) {
 func GetAll(conf *config.Config, q *queue.MapQueue, m *memory.Storage) {
 	go func() {
 		db := postgresql.DbConnect(conf)
+		defer db.Close()
 		query := fmt.Sprintf("SELECT %s, %s, %s, %s, %s FROM %s", baseId, expression, value, errColumn, currentResult, tableName)
 		sql, err := db.Prepare(query)
 		if err != nil {
@@ -145,6 +146,7 @@ func Update(conf *config.Config, q *queue.MapQueue, m *memory.Storage) {
 				continue
 			}
 			db := postgresql.DbConnect(conf)
+
 			for _, item := range items {
 				data, err := m.GeByExpression(item)
 				if err != nil {

@@ -25,6 +25,7 @@ func DbConnect(conf *config.Config) *sql.DB {
 		if err == nil {
 			break
 		}
+		time.Sleep(time.Second * 5)
 	}
 	slog.Info("Соединение с базой данных установлено")
 	return db

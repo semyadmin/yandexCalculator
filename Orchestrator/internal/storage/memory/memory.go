@@ -83,6 +83,7 @@ func (s *Storage) SetFromDb(data *arithmetic.ASTTree, status string) {
 func (s *Storage) GeByExpression(expression string) (DataInfo, error) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
+
 	if data, ok := s.data[expression]; ok {
 		return data.Value.(DataInfo), nil
 	}
@@ -91,8 +92,9 @@ func (s *Storage) GeByExpression(expression string) (DataInfo, error) {
 
 func (s *Storage) GeById(id uint64) (DataInfo, error) {
 	s.mutex.Lock()
-	defer s.mutex.Unlock()
-	if data, ok := s.exists[id]; ok {
+	data, ok := s.exists[id]
+	s.mutex.Unlock()
+	if ok {
 		return s.GeByExpression(data)
 	}
 	return DataInfo{}, errExpressionNotExists

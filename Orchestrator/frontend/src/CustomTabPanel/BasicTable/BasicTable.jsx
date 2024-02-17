@@ -14,7 +14,10 @@ import CloseIcon from '@mui/icons-material/Close';
 
 
 
-export default function BasicTable(rows) {
+export default function BasicTable(props) {
+  const onClickIdValue = (id) => {
+    props.sendIdValue(id)
+  }
   return (
     <TableContainer component={Paper}>
       <Table sx={{ minWidth: 650 }} aria-label="simple table">
@@ -28,17 +31,20 @@ export default function BasicTable(rows) {
           </TableRow>
         </TableHead>
         <TableBody>
-          {rows.rows.map((row) => (
+          {props.rows.map((row) => (
             
             <TableRow
               key={row.id}
               sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
             >
-              <TableCell>
+              <TableCell >
                 
                   {row.status == 'progress' 
                   ? <Tooltip title="Обновить информацию"><IconButton><AutorenewIcon
-                      onClick={(event) => console.log(event)}
+  
+                      onClick={() => {
+                        onClickIdValue(row.id)
+                    }}
                       sx={{ "&:hover": { color: "green" } }}
                   /></IconButton></Tooltip>
                   : row.status == 'completed' ? <Tooltip title="Выражение посчитано"><CheckIcon/></Tooltip> 

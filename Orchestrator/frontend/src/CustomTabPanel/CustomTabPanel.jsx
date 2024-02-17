@@ -17,9 +17,13 @@ export default function CustomTabPanel(props) {
   const [openError, setOpenError] = React.useState(false);
   const { value, index, client } = props;
   const [textValue, setTextValue] = React.useState('');
+  const [idValue, setIdValue] = React.useState('');
   const [answer, setAnswer] = React.useState([]);
   const onChangeText = (event) => {
     setTextValue(event.target.value);
+  }
+  const onChangeId = (event) => {
+    setIdValue(event.target.value);
   }
   const sendTextValue = () => {
     client
@@ -55,9 +59,33 @@ export default function CustomTabPanel(props) {
           setOpenSuccess(true)
           setAnswer(answer)
         }
-        /*
-        const ids = answer.map(el => el.id)
-         if (ids.includes(res.id) == false) {
+      })
+      .catch(error => {
+        console.log(error)
+        setTextSnackbarError(`Введенное выражение некорректно!`)
+        setOpenError(true)
+      })
+  }
+  const sendIdValue = () => {
+    client
+      .get('/id/'+idValue)
+      .then((response) => {
+        const res = {
+          id: response.data.ID,
+          expression: response.data.Expression,
+          start: response.data.Start,
+          end: response.data.End,
+          status: response.data.Status
+        }
+        let change = false
+        answer.forEach(el => {
+          if (el.id == res.id) {
+            el.status = res.status
+            el.expression = res.expression
+            change = true
+          }
+        })
+        if (change == false) {
           setOpenSuccess(false)
           setTextSnackbarSuccess(`Выражение ${res.expression} успешно поставлено на обработку`)
           setOpenSuccess(true)
@@ -66,14 +94,18 @@ export default function CustomTabPanel(props) {
           setOpenSuccess(false)
           setTextSnackbarSuccess(`Выражение ${res.expression} уже обрабатывается`)
           setOpenSuccess(true)
-        } 
-        */
+          setAnswer(answer)
+        }
       })
       .catch(error => {
         console.log(error)
-        setTextSnackbarError(`Введенное выражение некорректно!`)
+        setTextSnackbarError(`Данного выражения не существует`)
         setOpenError(true)
       })
+  }
+  const setIdValueFromTable = (id) => {
+    setIdValue(id)
+    sendIdValue()
   }
   const handleCloseSuccess = (event, reason) => {
     if (reason === 'clickaway') {
@@ -121,9 +153,23 @@ export default function CustomTabPanel(props) {
                 onClick={() => sendTextValue()}
                 sx={{ mt: 3, mb: 2 }}
               >Расчитать</Button>
+              <TextField 
+                fullWidth
+                id="find-id"
+                label="Найти по ID"
+                value={idValue}
+                sx={{ mt: 3, mb: 2 }}
+                onChange={onChangeId}
+              />
+              <Button
+                fullWidth
+                variant="contained"
+                onClick={() => sendIdValue()}
+                sx={{ mt: 3, mb: 2 }}
+              >Найти</Button>
             </Grid>
             <Grid sx={{m: 3}}>
-              <BasicTable rows={answer} />
+              <BasicTable rows={answer} sendIdValue={setIdValueFromTable} />
             </Grid>
           </Grid>
         </Box>      
