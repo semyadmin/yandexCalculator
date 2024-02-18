@@ -256,7 +256,7 @@ func Upgrade(exp []byte) []byte {
 			operatorIndex = i
 			continue
 		}
-		if exp[i] == '*' || exp[i] == '/' {
+		/* if exp[i] == '*' || exp[i] == '/' {
 			if operatorIndex > left {
 				result = append(result, exp[left:operatorIndex+1]...)
 				left = operatorIndex + 1
@@ -282,7 +282,7 @@ func Upgrade(exp []byte) []byte {
 			}
 			result = append(result, exp[index])
 			continue
-		}
+		} */
 		if exp[i] == '(' {
 			result = append(result, exp[left:i+1]...)
 			array := Upgrade(exp[i+1:])

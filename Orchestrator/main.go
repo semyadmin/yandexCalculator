@@ -162,6 +162,6 @@ func main1() {
 }
 
 func main() {
-	exp := "2+2+2+2*2/2*4+1"
+	exp := "2+2+2+(2*2/2*4+1+1)+1"
 	fmt.Println(string(arithmetic.Upgrade([]byte(exp))))
 }
