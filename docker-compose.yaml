@@ -16,7 +16,7 @@ services:
       context: .
       dockerfile: ./Agent/Dockerfile
     deploy:
-      replicas: 3
+      replicas: 1
     networks:
       - orchesterator
   db:
