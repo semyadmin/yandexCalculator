@@ -104,8 +104,41 @@ export default function CustomTabPanel(props) {
       })
   }
   const setIdValueFromTable = (id) => {
-    setIdValue(id)
-    sendIdValue()
+    client
+    .get('/id/'+id)
+    .then((response) => {
+      const res = {
+        id: response.data.ID,
+        expression: response.data.Expression,
+        start: response.data.Start,
+        end: response.data.End,
+        status: response.data.Status
+      }
+      let change = false
+      answer.forEach(el => {
+        if (el.id == res.id) {
+          el.status = res.status
+          el.expression = res.expression
+          change = true
+        }
+      })
+      if (change == false) {
+        setOpenSuccess(false)
+        setTextSnackbarSuccess(`Выражение ${res.expression} успешно поставлено на обработку`)
+        setOpenSuccess(true)
+        setAnswer([...answer,res])
+      } else {
+        setOpenSuccess(false)
+        setTextSnackbarSuccess(`Выражение ${res.expression} уже обрабатывается`)
+        setOpenSuccess(true)
+        setAnswer(answer)
+      }
+    })
+    .catch(error => {
+      console.log(error)
+      setTextSnackbarError(`Данного выражения не существует`)
+      setOpenError(true)
+    })
   }
   const handleCloseSuccess = (event, reason) => {
     if (reason === 'clickaway') {
