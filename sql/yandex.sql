@@ -1,6 +1,3 @@
-BEGIN;
-
-SET client_encoding = 'LATIN1';
 
 CREATE TABLE Expressions (
     id SERIAL,
@@ -16,8 +13,6 @@ CREATE TABLE Configs (
     Plus BIGINT,
     Minus BIGINT,
     Multiply BIGINT,
-    Divide BIGINT
-    MaxID BIGINT,
+    Divide BIGINT,
+    MaxID BIGINT
 );
-
-COMMIT;
