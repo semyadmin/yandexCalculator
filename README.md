@@ -78,3 +78,12 @@ http://localhost:8080/
 Распаковать и запустить нужный файл для оркестратора и агента из директории вашей операционной системы (для lInux и Windows файлы точно работают). Можно так же произвести необходимые настройки для запуска приложения (настройки в папках config)
 
 Настройки оркестратора
+Все настройки находятся в файле ./Orchestrator/config/.env и для докер образа в файле docker-compose.yaml
+ORCHESTRATOR_HTTP_PORT=8080 - настройка HTTP порта для работы сервера по протоколу http
+ORCHESTRATOR_TCP_PORT=7777 - настройка для работы TCP сервера. TCP сервер нужен для работы с агентом
+ORCHESTRATOR_DB=db_orchesterator - адрес базы данных. Для запуска через go надо поставить 127.0.0.1
+ORCHESTRATOR_DB_NAME=orchestrator - название базы данных
+ORCHESTRATOR_DB_PORT=5432 - порт для подключения к базе данных
+ORCHESTRATOR_DB_USER=postgres - имя пользователя для базы данных
+ORCHESTRATOR_DB__PASSWORD=postgres - пароль для базы данных
+
