@@ -71,6 +71,7 @@ func Add(model *arithmetic.ASTTree, conf *config.Config) {
 	}()
 }
 
+// Проверяем наличие выражения по строке выражения
 func GetByExpression(exp string, conf *config.Config) (bool, error) {
 	db := postgresql.DbConnect(conf)
 	defer db.Close()
@@ -134,6 +135,7 @@ func GetAll(conf *config.Config, q *queue.MapQueue, m *memory.Storage) {
 	}()
 }
 
+// Обновляем выражение по его строке выражения
 func Update(conf *config.Config, q *queue.MapQueue, m *memory.Storage) {
 	go func() {
 		for {

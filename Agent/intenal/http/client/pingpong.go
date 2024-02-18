@@ -10,6 +10,8 @@ import (
 	"github.com/adminsemy/yandexCalculator/Agent/intenal/config"
 )
 
+// Делаем вечное соединение и отправляем данные по
+// количество занятых горутин и общее количество горутин
 func Ping(conf *config.Config) {
 	go func() {
 		goroutines := strconv.FormatInt(int64(conf.MaxGoroutines), 10)

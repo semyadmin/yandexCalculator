@@ -23,6 +23,7 @@ func NewLockFreeQueue() *LockFreeQueue {
 	}
 }
 
+// Добавляем в атомарную очередь
 func (l *LockFreeQueue) Enqueue(value *SendInfo) {
 	node := &Node{value: value}
 	for {
@@ -50,6 +51,7 @@ func (l *LockFreeQueue) Enqueue(value *SendInfo) {
 	}
 }
 
+// Извлекаем из атомарной очереди
 func (l *LockFreeQueue) Dequeue() (*SendInfo, bool) {
 	var result *Node
 	for {

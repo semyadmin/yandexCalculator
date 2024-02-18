@@ -10,6 +10,7 @@ import (
 	_ "github.com/lib/pq"
 )
 
+// Создаем подключение к базе данных
 func DbConnect(conf *config.Config) *sql.DB {
 	var db *sql.DB
 	var err error

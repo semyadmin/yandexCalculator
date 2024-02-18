@@ -33,6 +33,7 @@ func NewServeMux(config *config.Config,
 	return serveMux, nil
 }
 
+// Выполняем все middleware на все запросы
 func Decorate(next http.Handler, middleware ...func(http.Handler) http.Handler) http.Handler {
 	decorated := next
 	for i := len(middleware) - 1; i >= 0; i-- {
@@ -42,6 +43,7 @@ func Decorate(next http.Handler, middleware ...func(http.Handler) http.Handler) 
 	return decorated
 }
 
+// Возвращаем данные по ID
 func getById(storage *memory.Storage) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		patch := r.URL.Path
@@ -68,6 +70,7 @@ func getById(storage *memory.Storage) func(w http.ResponseWriter, r *http.Reques
 	}
 }
 
+// Возвращаем данные по воркерам
 func getWorkers(conf *config.Config, q *queue.MapQueue) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodGet {
@@ -90,6 +93,7 @@ func getWorkers(conf *config.Config, q *queue.MapQueue) func(w http.ResponseWrit
 	}
 }
 
+// Читаем входящее выражение, валидируем его,сохраняем в память и возвращаем результат
 func expressionHandler(config *config.Config,
 	queue *queue.MapQueue,
 	storage *memory.Storage,
@@ -149,8 +153,10 @@ func expressionHandler(config *config.Config,
 	}
 }
 
+// Обрабатываем входящее время и возвращаем
 func durationHandler(conf *config.Config) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
+		// Обрабатываем входящее время
 		if r.Method == http.MethodPost {
 			newDuration := config.ConfigExpression{}
 			data, err := io.ReadAll(r.Body)
@@ -178,6 +184,7 @@ func durationHandler(conf *config.Config) func(w http.ResponseWriter, r *http.Re
 			slog.Info("Время для операций обновлено и отправлено", "новое время:", newDuration)
 			w.Write(data)
 		}
+		// Возвращаем текущее установки времени
 		if r.Method == http.MethodGet {
 			newDuration := config.ConfigExpression{}
 			newDuration.Init(conf)

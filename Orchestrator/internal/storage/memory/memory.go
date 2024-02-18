@@ -53,12 +53,14 @@ func (s *Storage) Set(data *arithmetic.ASTTree, status string) {
 		Id:         nextId,
 	}
 	data.SetID(nextId)
+	// Запускаем вычисление выражения
 	go data.Calculate()
 	newElement := s.queue.PushBack(newDataInfo)
 	s.data[data.GetExpression()] = newElement
 	s.exists[newDataInfo.Id] = data.GetExpression()
 }
 
+// Сохраняем выражение в память из базы данных
 func (s *Storage) SetFromDb(data *arithmetic.ASTTree, status string) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
@@ -80,6 +82,7 @@ func (s *Storage) SetFromDb(data *arithmetic.ASTTree, status string) {
 	s.exists[newDataInfo.Id] = data.GetExpression()
 }
 
+// Возвращаем выражение из памяти по строке выражения
 func (s *Storage) GeByExpression(expression string) (DataInfo, error) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
@@ -90,6 +93,7 @@ func (s *Storage) GeByExpression(expression string) (DataInfo, error) {
 	return DataInfo{}, errExpressionNotExists
 }
 
+// Ищем в памяти выражение по ID
 func (s *Storage) GeById(id uint64) (DataInfo, error) {
 	s.mutex.Lock()
 	data, ok := s.exists[id]

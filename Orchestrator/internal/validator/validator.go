@@ -4,6 +4,7 @@ import (
 	"strings"
 )
 
+// Валидируем выражение
 func Validator(str string) (string, bool) {
 	str = strings.ReplaceAll(str, " ", "")
 	operators := map[byte]uint8{'(': 0, ')': 0, '+': 1, '-': 1, '*': 2, '/': 2, '.': 0}

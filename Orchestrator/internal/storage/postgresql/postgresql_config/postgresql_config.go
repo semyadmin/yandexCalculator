@@ -59,6 +59,7 @@ func Save(conf *config.Config) {
 	}()
 }
 
+// Ищем созданную конфигурацию в базе данных. Ищем по ID = 1
 func GetByIdOne(conf *config.Config) (Conf, error) {
 	db := postgresql.DbConnect(conf)
 	defer db.Close()
@@ -87,6 +88,7 @@ func GetByIdOne(conf *config.Config) (Conf, error) {
 	return result, nil
 }
 
+// Если нет конфигурации с ID = 1, то создаем
 func create(conf *config.Config) {
 	db := postgresql.DbConnect(conf)
 	defer db.Close()
@@ -102,6 +104,7 @@ func create(conf *config.Config) {
 	sqlPrepare.Query(0, 0, 0, 0, 0)
 }
 
+// Инициализируем конфиг
 func (c *Conf) Init(conf *config.Config) {
 	conf.Lock()
 	defer conf.Unlock()
@@ -112,6 +115,9 @@ func (c *Conf) Init(conf *config.Config) {
 	c.MaxID = conf.MaxID
 }
 
+// Загружаем сохраненную конфигурацию во время старта приложения
+// Пытаемся подключиться к базе данных. Если данные будут изменены и потом будет
+// подключена к базе данных, то конфиг будет перезаписан
 func Load(conf *config.Config) {
 	go func() {
 		duration, err := GetByIdOne(conf)

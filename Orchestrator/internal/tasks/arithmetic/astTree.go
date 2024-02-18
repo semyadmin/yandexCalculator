@@ -34,13 +34,17 @@ type result struct {
 	res string
 }
 
+// Создаем AST дерево из выражения
 func NewASTTree(expression string, config *config.Config, queue *queue.MapQueue) (*ASTTree, error) {
+	// Добавляем кавычки, где только возможно
 	upgradeExp := Upgrade([]byte(expression))
 	slog.Info("Усовершенствованное выражение", "выражение:", string(upgradeExp))
+	// Создаем AST дерево
 	tr, err := parser.ParseExpr(string(upgradeExp))
 	if err != nil {
 		return nil, err
 	}
+	// Преобразуем AST дерево в нашу структуру ASTTree
 	a := create(tr)
 	if err != nil {
 		return nil, err
@@ -48,11 +52,13 @@ func NewASTTree(expression string, config *config.Config, queue *queue.MapQueue)
 	a.Expression = expression
 	a.queue = queue
 	a.config = config
+	// Вычисляем примерное время выполнения выражения
 	a.Duration = duration(a, config)
 	a.Start = time.Now()
 	return a, nil
 }
 
+// Создаем AST дерево из базы данных
 func NewASTTreeDB(
 	id uint64,
 	expression string,
@@ -123,6 +129,7 @@ func duration(a *ASTTree, config *config.Config) int64 {
 	return res
 }
 
+// Вычисляем выражение
 func (a *ASTTree) Calculate() {
 	if a.IsCalc {
 		return
@@ -143,14 +150,18 @@ func (a *ASTTree) Calculate() {
 	slog.Info("Выражение вычислено", "выражение:", a.Expression, "результат:", a.Value)
 }
 
+// Возвращаем само выражение
 func (a *ASTTree) GetExpression() string {
 	return a.Expression
 }
 
+// Устанавливаем ID выражению
 func (a *ASTTree) SetID(id uint64) {
 	a.ID = id
 }
 
+// Печатаем полученное выражение, вычисленное в процессе, что бы
+// не считать все выражение заново
 func PrintExpression(a *ASTTree) string {
 	if a.IsCalc {
 		return a.Value
@@ -162,6 +173,8 @@ func PrintExpression(a *ASTTree) string {
 	return PrintExpression(a.X) + a.Operator + PrintExpression(a.Y)
 }
 
+// Вычисляем каждую операцию. Если уже вычислено
+// то возвращаем результат
 func getResult(a *ASTTree, ch chan result, parent *ASTTree, level string) {
 	res := result{}
 	if a.IsCalc {
@@ -207,6 +220,7 @@ func getResult(a *ASTTree, ch chan result, parent *ASTTree, level string) {
 	a.Unlock()
 }
 
+// Вычисляем операцию в зависимости от оператора
 func calculate(resX, operator, resY string, parent *ASTTree, level string) result {
 	resultCh := make(chan string)
 	deadline := int64(0)
@@ -238,6 +252,7 @@ func calculate(resX, operator, resY string, parent *ASTTree, level string) resul
 	return res
 }
 
+// Совершенствуем выражение добавлением скобок
 func Upgrade(exp []byte) []byte {
 	operatorIndex := 0
 	result := make([]byte, 0)
@@ -330,6 +345,7 @@ func Upgrade(exp []byte) []byte {
 	return result
 }
 
+// Добавляем скобки в умножение и деление
 func upgradeMultiDivide(exp []byte, index int, left int) ([]byte, int) {
 	result := make([]byte, 0)
 	openBorder := true

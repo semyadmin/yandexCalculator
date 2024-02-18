@@ -7,6 +7,8 @@ import (
 	"time"
 )
 
+// Вычисляем операцию в зависимости от оператора
+// и времени на его обработку
 func Calculate(expression string) (string, error) {
 	array := strings.Split(expression, " ")
 	if len(array) != 3 {
@@ -42,6 +44,7 @@ func Calculate(expression string) (string, error) {
 	return id + " " + strconv.FormatFloat(result, 'f', -1, 64) + " " + array[2], nil
 }
 
+// Проверяем корректность значения
 func parseExpression(str string) (float64, float64, string, error) {
 	split := 0
 	for i := 1; i < len(str); i++ {

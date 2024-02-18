@@ -15,6 +15,7 @@ type Expression struct {
 	Status     string
 }
 
+// Конвертируем выражение в структуру для отправки
 func NewExpression(a *arithmetic.ASTTree) Expression {
 	r := Expression{}
 	a.Lock()

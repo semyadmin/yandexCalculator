@@ -45,8 +45,11 @@ func NewMapQueue(queue *LockFreeQueue, c *config.Config) *MapQueue {
 	return m
 }
 
+// Добавляем операцию в очередь
 func (m *MapQueue) Enqueue(exp *SendInfo) {
 	m.RLock()
+	// Проверяем есть ли уже вычисленное выражение
+	// Если есть - возвращаем его в канал
 	if data, ok := m.doneQueue[exp.Id]; ok {
 		exp.Result <- data
 		m.RUnlock()
@@ -65,10 +68,12 @@ func (m *MapQueue) Enqueue(exp *SendInfo) {
 			m.Unlock()
 		}
 	}
+
 	m.queue.Enqueue(exp)
 	slog.Info("Операция добавлена в очередь", "операция:", exp)
 }
 
+// Извлекаем операцию из очереди и записываем ее в кэш
 func (m *MapQueue) Dequeue() (*SendInfo, bool) {
 	m.Lock()
 	defer m.Unlock()
@@ -86,6 +91,7 @@ func (m *MapQueue) Dequeue() (*SendInfo, bool) {
 	return exp, true
 }
 
+// Отмечаем вычисленное выражение и возвращаем результат
 func (m *MapQueue) Done(result string) {
 	array := strings.Split(result, " ")
 	m.RLock()
@@ -114,12 +120,14 @@ func (m *MapQueue) Done(result string) {
 	m.Unlock()
 }
 
+// Длина очереди
 func (m *MapQueue) Len() int {
 	m.RLock()
 	defer m.RUnlock()
 	return len(m.mapQueue)
 }
 
+// Проверяем время выполнения. Если превысило норму - возвращаем обратно в очередь
 func (m *MapQueue) checkTime() {
 	go func() {
 		for {
@@ -142,6 +150,7 @@ func (m *MapQueue) checkTime() {
 	}()
 }
 
+// Возвращаем все выражения в очереди
 func (m *MapQueue) GetQueue() []string {
 	m.RLock()
 	array := make([]string, 0, len(m.mapQueue))

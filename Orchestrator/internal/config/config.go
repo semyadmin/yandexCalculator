@@ -90,6 +90,7 @@ func New() *Config {
 	}
 }
 
+// Копируем конфигурацию из конфигурации от пользователя в нашу конфигурацию
 func (c *Config) NewDuration(conf *ConfigExpression) error {
 	c.Lock()
 	defer c.Unlock()

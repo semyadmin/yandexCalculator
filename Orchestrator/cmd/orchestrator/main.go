@@ -16,12 +16,19 @@ import (
 )
 
 func main() {
+	// Создаем конфигурацию
 	conf := config.New()
+	// Загружаем конфигурацию из базы
 	postgresql_config.Load(conf)
+	// Создаем сторадж для хранения выражений в памяти
 	storage := memory.New(conf)
+	// Создаем новую очередь
 	newQueue := queue.NewMapQueue(queue.NewLockFreeQueue(), conf)
+	// Загружаем все выражения из базы
 	postgresql_ast.GetAll(conf, newQueue, storage)
+	// Горутина для обновления результатов выражений
 	postgresql_ast.Update(conf, newQueue, storage)
+	// Запускаем TCP/IP сервер
 	tcpServer, err := serverTCP.NewServer(":"+conf.TCPPort, conf, newQueue, storage)
 	if err != nil {
 		slog.Error("Ошибка запуска TCP/IP сервера:", "ошибка:", err)
@@ -31,6 +38,7 @@ func main() {
 	tcpServer.Start()
 	slog.Info("Оркестратор запущен")
 	ctx, cancel := context.WithCancel(context.Background())
+	// Получаем функцию для остановки HTTP сервера
 	shutDown, err := server.Run(ctx, conf, newQueue, storage)
 	if err != nil {
 		slog.Error("Ошибка запуска сервера:", "ошибка:", err)
