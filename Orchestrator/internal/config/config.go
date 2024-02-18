@@ -64,7 +64,7 @@ func New() *Config {
 		tcpPort = "7777"
 	}
 	if db == "" {
-		tcpPort = "localhost"
+		db = "localhost"
 	}
 	if dbName == "" {
 		dbName = "orchestrator"

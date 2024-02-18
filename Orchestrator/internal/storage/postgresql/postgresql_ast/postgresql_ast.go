@@ -117,7 +117,10 @@ func GetAll(conf *config.Config, q *queue.MapQueue, m *memory.Storage) {
 			if err != nil {
 				return
 			}
-			entity, _ := arithmetic.NewASTTree(currentResult, conf, q)
+			entity, _ := arithmetic.NewASTTreeDB(currentId, currentExp, currentValue, currentErr, currentResult, conf, q)
+			if entity == nil {
+				continue
+			}
 			entity.Lock()
 			entity.ID = currentId
 			entity.Expression = currentExp

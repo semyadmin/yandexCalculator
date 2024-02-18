@@ -53,6 +53,37 @@ func NewASTTree(expression string, config *config.Config, queue *queue.MapQueue)
 	return a, nil
 }
 
+func NewASTTreeDB(
+	id uint64,
+	expression string,
+	value string,
+	isErr bool,
+	currentResult string,
+	config *config.Config,
+	queue *queue.MapQueue,
+) (*ASTTree, error) {
+	tr, err := parser.ParseExpr(currentResult)
+	if err != nil {
+		return nil, err
+	}
+	a := create(tr)
+	if err != nil {
+		return nil, err
+	}
+	a.ID = id
+	a.Expression = expression
+	a.Value = value
+	if isErr {
+		a.Err = errors.New("error")
+	}
+	a.IsCalc = true
+	a.queue = queue
+	a.config = config
+	a.Duration = duration(a, config)
+	a.Start = time.Now()
+	return a, nil
+}
+
 func create(tr ast.Expr) *ASTTree {
 	a := new(ASTTree)
 	switch nod := tr.(type) {
