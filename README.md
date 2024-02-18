@@ -46,7 +46,20 @@
 </details>
 
 Запуск оркестратора и агента (агентов) можно выполнить несколькими способами
-Во всех способах надо сначала перейти на страницу https://github.com/adminsemy
+Во всех способах надо сначала перейти на страницу https://github.com/adminsemy/yandexCalculator
 
-1. 
+1. Простой способ с использование докер файлов
+Нужно, что бы у вас был установлен docker. Можно поставить его по инструкциям
+https://docs.docker.com/engine/install/
+Делаем клон репозитория https://github.com/adminsemy/yandexCalculator
+Если установлен git
+git clone https://github.com/adminsemy/yandexCalculator
+Если git не установлен
+Качаем архив по ссылке https://github.com/adminsemy/yandexCalculator/archive/refs/heads/main.zip и рапаковываем в любую папку
+Далее переходим в коревую папку и запускаем команду. (ВНИМАНИЕ - порты 8080, 7777 и 5433 должны быть не заняты!
+Если они заняты и нужны, то надо зайти в папку Orchestrator/config и в файле .env изменить на нужные. Если меняется ORCHESTRATOR_TCP_PORT, то соответствующую настройку необходимо сделать в агенте (из корневой папки папка Agent/config и отредактировать параметр PORT))
+docker compose up
+После запуска контейнеров можно перейти по адресу
+http://localhost:8080/
+2. Второй способ без 
 
