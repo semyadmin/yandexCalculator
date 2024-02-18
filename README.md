@@ -87,8 +87,8 @@ http://localhost:8080/
 
     go run cmd/orchestrator/main.go
 
-    Возвращаемся в корневую папку
 
+Возвращаемся в корневую папку.
 Затем перейти в папку Agent и из этой папки запустить агент командой
 
     go run cmd/orchestrator/main.go
