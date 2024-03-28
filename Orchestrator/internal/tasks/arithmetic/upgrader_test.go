@@ -56,6 +56,48 @@ func Test_upgradeMultiDivide(t *testing.T) {
 			},
 			want: []byte("1/2/2/2"),
 		},
+		{
+			name: "multy+div",
+			args: args{
+				exp: []byte("1*2/2*2"),
+			},
+			want: []byte("(1*2)/2*2"),
+		},
+		{
+			name: "multy with negative number 1",
+			args: args{
+				exp: []byte("-11*2*2*2"),
+			},
+			want: []byte("(-11*2)*(2*2)"),
+		},
+		{
+			name: "multy with negative number 1",
+			args: args{
+				exp: []byte("-11*2*-2*-2"),
+			},
+			want: []byte("(-11*2)*(-2*-2)"),
+		},
+		{
+			name: "multy with brackets 1",
+			args: args{
+				exp: []byte("2*2*2*(2*2*2)*2"),
+			},
+			want: []byte("(2*2)*2*((2*2)*2)*2"),
+		},
+		{
+			name: "multy with brackets 2",
+			args: args{
+				exp: []byte("2*2*2*(2*2*2)"),
+			},
+			want: []byte("(2*2)*2*((2*2)*2)"),
+		},
+		{
+			name: "many brackets",
+			args: args{
+				exp: []byte("(2*2)*2*((2*2)*2*2)"),
+			},
+			want: []byte("(2*2)*2*((2*2)*(2*2))"),
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

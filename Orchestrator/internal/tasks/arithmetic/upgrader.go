@@ -98,6 +98,7 @@ func upgradeMultiDivide(exp []byte) []byte {
 	result := make([]byte, 0)
 	left := 0
 	prevOperator := byte(0)
+	countBrackets := 0
 	for i := 0; i < len(exp); i++ {
 		if exp[i] == '*' {
 			if prevOperator == 1 {
@@ -107,11 +108,23 @@ func upgradeMultiDivide(exp []byte) []byte {
 				continue
 			}
 			if exp[i+1] == '(' {
-				result = append(result, exp[left:i+2]...)
+				countBrackets++
+				i++
+				result = append(result, exp[left:i+1]...)
 				array := upgradeMultiDivide(exp[i+1:])
+				for countBrackets > 0 {
+					i++
+					if exp[i] == '(' {
+						countBrackets++
+					}
+					if exp[i] == ')' {
+						countBrackets--
+					}
+				}
 				result = append(result, array...)
 				result = append(result, ')')
-				i = i + len(array)
+				left = i + 1
+				prevOperator = 1
 				continue
 			}
 			if prevOperator == exp[i] || prevOperator == 0 {
@@ -136,7 +149,7 @@ func upgradeMultiDivide(exp []byte) []byte {
 			left = i + 1
 			prevOperator = exp[i]
 		}
-		if exp[i] == '+' || exp[i] == '-' || exp[i] == '/' {
+		if exp[i] == '+' || exp[i] == '-' {
 			if exp[i] == '-' {
 				if i == 0 || exp[i-1] < 48 {
 					continue
@@ -145,6 +158,15 @@ func upgradeMultiDivide(exp []byte) []byte {
 			result = append(result, exp[left:i+1]...)
 			left = i + 1
 			prevOperator = 0
+		}
+		if exp[i] == '/' {
+			result = append(result, exp[left:i+1]...)
+			left = i + 1
+			prevOperator = exp[i]
+		}
+		if exp[i] == ')' {
+			result = append(result, exp[left:i]...)
+			return result
 		}
 	}
 	result = append(result, exp[left:]...)
