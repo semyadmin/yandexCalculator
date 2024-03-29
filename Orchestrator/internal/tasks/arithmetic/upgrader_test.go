@@ -98,6 +98,13 @@ func Test_upgradeMultiDivide(t *testing.T) {
 			},
 			want: []byte("((2*2))*2*(((2*2))*(2*2))"),
 		},
+		{
+			name: "multy with plus minus",
+			args: args{
+				exp: []byte("2+2-111+888*8/9*2*2+599*33*555+1"),
+			},
+			want: []byte("2+2-111+888*8/9*(2*2)+(599*33)*555+1"),
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

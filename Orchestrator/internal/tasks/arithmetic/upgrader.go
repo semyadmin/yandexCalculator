@@ -172,6 +172,14 @@ func upgradeMultiDivide(exp []byte) []byte {
 					continue
 				}
 			}
+			if prevOperator == '*' {
+				result = append(result, '(')
+				result = append(result, exp[left:i]...)
+				result = append(result, ')', exp[i])
+				left = i + 1
+				prevOperator = 0
+				continue
+			}
 			result = append(result, exp[left:i+1]...)
 			left = i + 1
 			prevOperator = 0
