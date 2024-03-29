@@ -99,12 +99,31 @@ func upgradeMultiDivide(exp []byte) []byte {
 	left := 0
 	prevOperator := byte(0)
 	countBrackets := 0
-	for i := 0; i < len(exp); i++ {
+	if exp[0] == '(' {
+		i := 0
+		countBrackets++
+		result = append(result, '(')
+		array := upgradeMultiDivide(exp[1:])
+		for countBrackets > 0 {
+			i++
+			if exp[i] == '(' {
+				countBrackets++
+			}
+			if exp[i] == ')' {
+				countBrackets--
+			}
+		}
+		result = append(result, array...)
+		result = append(result, ')')
+		left = i + 1
+		prevOperator = 1
+	}
+	for i := left; i < len(exp); i++ {
 		if exp[i] == '*' {
 			if prevOperator == 1 {
 				result = append(result, exp[i])
 				left = i + 1
-				prevOperator = exp[i]
+				prevOperator = 0
 				continue
 			}
 			if exp[i+1] == '(' {
@@ -127,27 +146,25 @@ func upgradeMultiDivide(exp []byte) []byte {
 				prevOperator = 1
 				continue
 			}
-			if prevOperator == exp[i] || prevOperator == 0 {
-				if exp[i+1] == '-' {
-					i++
-				}
-				var j int
-				for j = i + 1; j < len(exp); j++ {
-					if exp[j] < 48 {
-						break
-					}
-				}
-				i = j - 1
-				array := append([]byte{'('}, exp[left:i+1]...)
-				array = append(array, ')')
-				result = append(result, array...)
+			if prevOperator == 0 {
+				prevOperator = exp[i]
+				continue
+			}
+			if prevOperator == exp[i] {
+				result = append(result, '(')
+				result = append(result, exp[left:i]...)
+				result = append(result, ')', exp[i])
 				left = i + 1
-				prevOperator = 1
+				prevOperator = 0
 				continue
 			}
 			result = append(result, exp[left:i+1]...)
 			left = i + 1
-			prevOperator = exp[i]
+			if prevOperator == '/' {
+				prevOperator = 0
+			} else {
+				prevOperator = exp[i]
+			}
 		}
 		if exp[i] == '+' || exp[i] == '-' {
 			if exp[i] == '-' {
@@ -165,9 +182,21 @@ func upgradeMultiDivide(exp []byte) []byte {
 			prevOperator = exp[i]
 		}
 		if exp[i] == ')' {
+			if prevOperator == '*' {
+				result = append(result, '(')
+				result = append(result, exp[left:i]...)
+				result = append(result, ')')
+				return result
+			}
 			result = append(result, exp[left:i]...)
 			return result
 		}
+	}
+	if prevOperator == '*' {
+		result = append(result, '(')
+		result = append(result, exp[left:]...)
+		result = append(result, ')')
+		return result
 	}
 	result = append(result, exp[left:]...)
 	return result

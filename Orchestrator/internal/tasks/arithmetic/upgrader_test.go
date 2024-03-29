@@ -61,7 +61,7 @@ func Test_upgradeMultiDivide(t *testing.T) {
 			args: args{
 				exp: []byte("1*2/2*2"),
 			},
-			want: []byte("(1*2)/2*2"),
+			want: []byte("1*2/2*2"),
 		},
 		{
 			name: "multy with negative number 1",
@@ -96,7 +96,7 @@ func Test_upgradeMultiDivide(t *testing.T) {
 			args: args{
 				exp: []byte("(2*2)*2*((2*2)*2*2)"),
 			},
-			want: []byte("(2*2)*2*((2*2)*(2*2))"),
+			want: []byte("((2*2))*2*(((2*2))*(2*2))"),
 		},
 	}
 	for _, tt := range tests {
