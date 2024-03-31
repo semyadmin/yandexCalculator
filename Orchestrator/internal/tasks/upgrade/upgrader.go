@@ -1,4 +1,4 @@
-package arithmetic
+package upgrade
 
 // Обновление выражения с добавлением скобок
 func Upgrade(exp []byte) []byte {

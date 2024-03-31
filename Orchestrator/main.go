@@ -7,8 +7,6 @@ import (
 	"go/parser"
 	"go/token"
 	"strconv"
-
-	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/tasks/arithmetic"
 )
 
 func operate(litX, litY *ast.BasicLit, op token.Token) (*ast.BasicLit, error) {
@@ -159,9 +157,4 @@ func main1() {
 
 	num, _ := strconv.ParseFloat("1.5", 64)
 	fmt.Println(num)
-}
-
-func main() {
-	exp := "2+2+2+(2*2/2*4+1+1)+1"
-	fmt.Println(string(arithmetic.Upgrade([]byte(exp))))
 }

@@ -10,6 +10,7 @@ import (
 
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/config"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/tasks/queue"
+	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/tasks/upgrade"
 )
 
 type ASTTree struct {
@@ -37,7 +38,7 @@ type result struct {
 // Создаем AST дерево из выражения
 func NewASTTree(expression string, config *config.Config, queue *queue.MapQueue) (*ASTTree, error) {
 	// Добавляем кавычки, где только возможно
-	upgradeExp := Upgrade([]byte(expression))
+	upgradeExp := upgrade.Upgrade([]byte(expression))
 	slog.Info("Усовершенствованное выражение", "выражение:", string(upgradeExp))
 	// Создаем AST дерево
 	tr, err := parser.ParseExpr(string(upgradeExp))
