@@ -66,7 +66,7 @@ export default function CustomTabPanel(props) {
         setOpenError(true)
       })
   }
-  const sendIdValue = () => {
+  /* const sendIdValue = () => {
     client
       .get('/id/'+idValue)
       .then((response) => {
@@ -103,6 +103,7 @@ export default function CustomTabPanel(props) {
         setOpenError(true)
       })
   }
+   */
   const setIdValueFromTable = (id) => {
     client
     .get('/id/'+id)
@@ -186,7 +187,7 @@ export default function CustomTabPanel(props) {
                 onClick={() => sendTextValue()}
                 sx={{ mt: 3, mb: 2 }}
               >Расчитать</Button>
-              <TextField 
+             {/*  <TextField 
                 fullWidth
                 id="find-id"
                 label="Найти по ID"
@@ -199,7 +200,7 @@ export default function CustomTabPanel(props) {
                 variant="contained"
                 onClick={() => sendIdValue()}
                 sx={{ mt: 3, mb: 2 }}
-              >Найти</Button>
+              >Найти</Button> */}
             </Grid>
             <Grid sx={{m: 3}}>
               <BasicTable rows={answer} sendIdValue={setIdValueFromTable} />

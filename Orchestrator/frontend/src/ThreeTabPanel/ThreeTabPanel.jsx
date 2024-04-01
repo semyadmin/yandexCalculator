@@ -14,7 +14,7 @@ export default function ThreeTabPanel(props) {
   const [expressions, setExpressions] = React.useState([]);
   
 
-  React.useEffect(() => {
+ /*  React.useEffect(() => {
     const getChargersData = () => {
       client.get('/workers')
         .then(response => {
@@ -30,7 +30,7 @@ export default function ThreeTabPanel(props) {
       getChargersData()
     },1000);
     return () => clearInterval(interval);    
-  }, [])
+  }, []) */
     
   return (
     <div

@@ -28,23 +28,25 @@ func NewManager(ctx context.Context) *Manager {
 }
 
 func (m *Manager) ServeWS(w http.ResponseWriter, r *http.Request) {
-	slog.Info("Serving Websocket request")
+	slog.Info("Установлено соединение с клиентом")
 	upgrader := websocket.Upgrader{
 		ReadBufferSize:  1024,
 		WriteBufferSize: 1024,
 	}
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		slog.Error("Failed to upgrade websocket", err)
+		slog.Error("Не удалось обновить соединение", err)
 	}
 	client := client.NewWebSocketClient(conn)
-	m.AddClient(client)
+	m.addClient(client)
+	slog.Info("Клиент добавлен", "клиент", *client)
 	go client.ReadMessages(m.delete, m.messageCh)
 	go client.WriteMessage(m.delete)
 	go m.RemoveClient()
+	client.WriteChan <- []byte("Hi from WS server")
 }
 
-func (m *Manager) AddClient(client *client.WebSocketClient) {
+func (m *Manager) addClient(client *client.WebSocketClient) {
 	m.Lock()
 	m.clients[client] = true
 	m.Unlock()

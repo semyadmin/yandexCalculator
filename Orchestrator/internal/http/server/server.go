@@ -26,7 +26,7 @@ func Run(ctx context.Context,
 	// Инициализируем HTTP сервер
 	httpServer := &http.Server{Addr: ":" + config.HttpPort, Handler: serveMux}
 
-	slog.Info("Http сервер запущен на порту " + config.HttpPort)
+	slog.Info("Http сервер запущен на http://127.0.0.1:" + config.HttpPort)
 
 	go func() {
 		if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
