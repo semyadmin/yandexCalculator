@@ -31,6 +31,7 @@ type Config struct {
 	AgentsAll   atomic.Int64
 	WorkersAll  atomic.Int64
 	WorkersBusy atomic.Int64
+	StatusExpID chan uint64
 	sync.Mutex
 }
 
@@ -56,7 +57,7 @@ func New() *Config {
 	dbName := os.Getenv("ORCHESTRATOR_DB_NAME")
 	dbPort := os.Getenv("ORCHESTRATOR_DB_PORT")
 	dbUser := os.Getenv("ORCHESTRATOR_DB_USER")
-	dbPassword := os.Getenv("ORCHESTRATOR_DB__PASSWORD")
+	dbPassword := os.Getenv("ORCHESTRATOR_DB_PASSWORD")
 	if httpPort == "" {
 		httpPort = "8080"
 	}
@@ -79,14 +80,15 @@ func New() *Config {
 		dbPassword = "postgres"
 	}
 	return &Config{
-		Host:     "localhost",
-		HttpPort: httpPort,
-		TCPPort:  tcpPort,
-		Db:       db,
-		DbName:   dbName,
-		DbPort:   dbPort,
-		DbUser:   dbUser,
-		DbPass:   dbPassword,
+		Host:        "localhost",
+		HttpPort:    httpPort,
+		TCPPort:     tcpPort,
+		Db:          db,
+		DbName:      dbName,
+		DbPort:      dbPort,
+		DbUser:      dbUser,
+		DbPass:      dbPassword,
+		StatusExpID: make(chan uint64),
 	}
 }
 

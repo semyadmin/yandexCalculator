@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"context"
 	"encoding/json"
 	"io"
 	"log/slog"
@@ -24,7 +23,6 @@ func NewServeMux(config *config.Config,
 ) (http.Handler, error) {
 	// Создам маршрутизатор
 	serveMux := http.NewServeMux()
-	wsManager := NewManager(context.Background())
 	// Регистрируем обработчики событий
 	patchToFront := "./frontend/build"
 	serveMux.Handle("/", http.FileServer(http.Dir(patchToFront)))
@@ -32,7 +30,7 @@ func NewServeMux(config *config.Config,
 	serveMux.HandleFunc("/expression", expressionHandler(config, queue, storage))
 	serveMux.HandleFunc("/id/", getById(storage))
 	serveMux.HandleFunc("/workers", getWorkers(config, queue))
-	serveMux.HandleFunc("/ws", wsManager.ServeWS)
+	serveMux.HandleFunc("/ws", serveWS(config, storage))
 	return serveMux, nil
 }
 

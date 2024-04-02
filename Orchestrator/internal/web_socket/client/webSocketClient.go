@@ -1,9 +1,13 @@
 package client
 
 import (
+	"encoding/json"
 	"log/slog"
 	"time"
 
+	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/config"
+	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/storage/memory"
+	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/tasks/responseStruct"
 	"github.com/gorilla/websocket"
 )
 
@@ -34,7 +38,7 @@ func NewWebSocketClient(connection *websocket.Conn) *WebSocketClient {
 	return w
 }
 
-func (c *WebSocketClient) ReadMessages(delete chan *WebSocketClient, m chan *Message) {
+/* func (c *WebSocketClient) ReadMessages(delete chan *WebSocketClient, m chan *Message) {
 	c.connection.SetPongHandler(c.pongHandler)
 	newMessage := &Message{
 		Client: c,
@@ -54,31 +58,39 @@ func (c *WebSocketClient) ReadMessages(delete chan *WebSocketClient, m chan *Mes
 		m <- newMessage
 		slog.Info("Send payload to channel: ", "message", string(payload))
 	}
-}
+} */
 
-func (c *WebSocketClient) WriteMessage(delete chan *WebSocketClient) {
-	defer func() {
-		delete <- c
-	}()
+func (c *WebSocketClient) WriteMessage(conf *config.Config, storage *memory.Storage) {
 	ticker := time.NewTicker(pingPeriod)
-	var message []byte
+	var id uint64
 	var ok bool
 	for {
 		select {
-		case message, ok = <-c.WriteChan:
+		case id, ok = <-conf.StatusExpID:
 			if !ok {
 				if err := c.connection.WriteMessage(websocket.CloseMessage, nil); err != nil {
-					slog.Error("connection closed: ", "error", err)
+					slog.Error("соединение закрыто: ", "ошибка", err)
 				}
 				return
 			}
-			if err := c.connection.WriteMessage(websocket.TextMessage, message); err != nil {
-				slog.Error("error writing message: ", "error", err)
+			exp, err := storage.GeById(id)
+			if err != nil {
+				slog.Error("Невозможно получить данные по ID:", "ОШИБКА:", err, "ID:", id)
+				continue
 			}
-			slog.Info("Message sent: ", "message", string(message))
+			resp := responseStruct.NewExpression(exp.Expression)
+			data, err := json.Marshal(resp)
+			if err != nil {
+				slog.Error("Невозможно сериализовать данные:", "ОШИБКА:", err)
+				continue
+			}
+			if err := c.connection.WriteMessage(websocket.TextMessage, data); err != nil {
+				slog.Error("ошибка записи сообщения: ", "ошибка", err)
+			}
+			slog.Info("Выражение отправлено: ", "выражение", resp)
 		case <-ticker.C:
 			if err := c.connection.WriteMessage(websocket.PingMessage, nil); err != nil {
-				slog.Error("error writing ping message: ", "error", err)
+				slog.Error("ошибка передачи ping: ", "ошибка", err)
 				return
 			}
 

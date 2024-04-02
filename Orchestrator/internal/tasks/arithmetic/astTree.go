@@ -47,9 +47,6 @@ func NewASTTree(expression string, config *config.Config, queue *queue.MapQueue)
 	}
 	// Преобразуем AST дерево в нашу структуру ASTTree
 	a := create(tr)
-	if err != nil {
-		return nil, err
-	}
 	a.Expression = expression
 	a.queue = queue
 	a.config = config
