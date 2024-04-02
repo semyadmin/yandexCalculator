@@ -1,12 +1,14 @@
 package config
 
 import (
+	"context"
 	"errors"
 	"os"
 	"strconv"
 	"sync"
 	"sync/atomic"
 
+	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/web_socket/manager"
 	"github.com/joho/godotenv"
 )
 
@@ -31,7 +33,7 @@ type Config struct {
 	AgentsAll   atomic.Int64
 	WorkersAll  atomic.Int64
 	WorkersBusy atomic.Int64
-	StatusExpID chan uint64
+	WSmanager   *manager.Manager
 	sync.Mutex
 }
 
@@ -80,15 +82,15 @@ func New() *Config {
 		dbPassword = "postgres"
 	}
 	return &Config{
-		Host:        "localhost",
-		HttpPort:    httpPort,
-		TCPPort:     tcpPort,
-		Db:          db,
-		DbName:      dbName,
-		DbPort:      dbPort,
-		DbUser:      dbUser,
-		DbPass:      dbPassword,
-		StatusExpID: make(chan uint64),
+		Host:      "localhost",
+		HttpPort:  httpPort,
+		TCPPort:   tcpPort,
+		Db:        db,
+		DbName:    dbName,
+		DbPort:    dbPort,
+		DbUser:    dbUser,
+		DbPass:    dbPassword,
+		WSmanager: manager.NewManager(context.Background()),
 	}
 }
 

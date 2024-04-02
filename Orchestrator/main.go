@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"go/ast"
-	"go/parser"
 	"go/token"
 	"strconv"
 )
@@ -117,44 +116,13 @@ func prefixNotation(n ast.Node) string {
 	return r
 }
 
-func main1() {
-	/*
-	   Usage:
-	           echo "(7+2+9)*2" | ./ast_sample
-	*/
-
-	exp := "(1+2)*3+(4/5)*9+(10-100)"
-
-	tr, err := parser.ParseExpr(exp)
-	fmt.Println("te")
-	if err != nil {
-		fmt.Println(err)
-		return
+func main() {
+	array := make(map[string]int)
+	array["a"] = 1
+	array["b"] = 2
+	array["c"] = 3
+	for k := range array {
+		delete(array, k)
 	}
-	fmt.Println(tr)
-
-	/*
-			 If you want to print the AST tree
-		        fmt.Println("-------------------")
-		        fs := token.NewFileSet()
-		        ast.Print(fs, tr)
-		        fmt.Println("-------------------")
-	*/
-	r, err := evalNode(tr)
-	fmt.Println("-------------------")
-	fs := token.NewFileSet()
-	ast.Print(fs, tr)
-	fmt.Println(r)
-
-	fmt.Println("-------------------")
-
-	p := prefixNotation(tr)
-	if err != nil {
-		fmt.Printf("%s\n", err)
-	} else {
-		fmt.Printf("%s: %s\n", p, r.Value)
-	}
-
-	num, _ := strconv.ParseFloat("1.5", 64)
-	fmt.Println(num)
+	fmt.Println(array)
 }
