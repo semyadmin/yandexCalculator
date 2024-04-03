@@ -12,6 +12,11 @@ var (
 	pingPeriod = (pongWait * 9) / 10
 )
 
+const (
+	ClientExpression  = "client"
+	CurrentExpression = "current"
+)
+
 type Message struct {
 	Payload []byte
 	Type    string
@@ -25,11 +30,12 @@ type WebSocketClient struct {
 	Type       string
 }
 
-func NewWebSocketClient(connection *websocket.Conn) *WebSocketClient {
+func NewWebSocketClient(connection *websocket.Conn, t string) *WebSocketClient {
 	w := &WebSocketClient{
 		connection: connection,
 		readChan:   make(chan []byte),
 		WriteChan:  make(chan []byte),
+		Type:       t,
 	}
 
 	return w

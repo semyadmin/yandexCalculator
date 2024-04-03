@@ -30,7 +30,7 @@ func NewServeMux(config *config.Config,
 	serveMux.HandleFunc("/expression", expressionHandler(config, queue, storage))
 	serveMux.HandleFunc("/id/", getById(storage))
 	serveMux.HandleFunc("/workers", getWorkers(config, queue))
-	serveMux.HandleFunc("/ws", serveWS(config, storage))
+	serveMux.HandleFunc("/ws", serveWS(config))
 	return serveMux, nil
 }
 

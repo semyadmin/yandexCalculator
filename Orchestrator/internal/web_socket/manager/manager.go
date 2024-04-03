@@ -27,8 +27,8 @@ func NewManager(ctx context.Context) *Manager {
 func (m *Manager) AddClient(client *client.WebSocketClient) {
 	m.Lock()
 	m.clients[client] = true
-	client.WriteMessage(m.delete)
 	m.Unlock()
+	go client.WriteMessage(m.delete)
 }
 
 func (m *Manager) RemoveClient() {
@@ -38,6 +38,7 @@ func (m *Manager) RemoveClient() {
 		m.Lock()
 		delete(m.clients, client)
 		m.Unlock()
+		close(client.WriteChan)
 		slog.Info("Client removed", "client", *client)
 	}
 }
