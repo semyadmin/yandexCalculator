@@ -5,6 +5,7 @@ import (
 	"go/ast"
 	"go/parser"
 	"log/slog"
+	"strings"
 	"sync"
 	"time"
 
@@ -36,7 +37,25 @@ type result struct {
 }
 
 // Создаем AST дерево из выражения
-func NewASTTree(expression string, config *config.Config, queue *queue.MapQueue) (*ASTTree, error) {
+func NewASTTree(expression string,
+	config *config.Config,
+	queue *queue.MapQueue,
+	validator func(string) bool,
+) (*ASTTree, error) {
+	expression = strings.ReplaceAll(expression, " ", "")
+	if !validator(expression) {
+		return &ASTTree{
+			Expression: expression,
+			Value:      "",
+			IsCalc:     false,
+			IsParent:   true,
+			queue:      queue,
+			config:     config,
+			Start:      time.Now(),
+			Duration:   0,
+			Err:        errors.New("invalid expression"),
+		}, nil
+	}
 	// Добавляем кавычки, где только возможно
 	upgradeExp := upgrade.Upgrade([]byte(expression))
 	slog.Info("Усовершенствованное выражение", "выражение:", string(upgradeExp))
@@ -126,7 +145,7 @@ func duration(a *ASTTree, config *config.Config) int64 {
 
 // Вычисляем выражение
 func (a *ASTTree) Calculate() {
-	if a.IsCalc {
+	if a.IsCalc || a.Err != nil {
 		return
 	}
 	ch := make(chan result)

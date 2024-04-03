@@ -14,23 +14,7 @@ import CloseIcon from '@mui/icons-material/Close';
 
 
 
-export default function BasicTable(props) {
-  const onClickIdValue = (id) => {
-    props.sendIdValue(id)
-  }
-  const address = "ws://" + window.location.host + "/ws"
-  console.log(address)
-  const socket = new WebSocket(address)
-
-  // Connection opened
-  socket.addEventListener("open", event => {
-    socket.send("Connection established")
-  });
-
-  // Listen for messages
-  socket.addEventListener("message", event => {
-    console.log("Message from server ", event.data)
-  });
+export default function BasicTable(props) {  
   return (
     <TableContainer component={Paper}>
       <Table sx={{ minWidth: 650 }} aria-label="simple table">
@@ -53,12 +37,7 @@ export default function BasicTable(props) {
               <TableCell >
                 
                   {row.status == 'progress' 
-                  ? <Tooltip title="Обновить информацию"><IconButton><AutorenewIcon
-                      /* onClick={() => {
-                        onClickIdValue(row.id)
-                    }} */
-                      sx={{ "&:hover": { color: "green" } }}
-                  /></IconButton></Tooltip>
+                  ? <Tooltip title="Выражение высчитывается"><AutorenewIcon/></Tooltip>
                   : row.status == 'completed' ? <Tooltip title="Выражение посчитано"><CheckIcon/></Tooltip> 
                   : <Tooltip title="Выражение посчитано с ошибкой"><CloseIcon/></Tooltip> 
                   }

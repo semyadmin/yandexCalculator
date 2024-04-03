@@ -8,9 +8,10 @@ const client = axios.create({
 })
 
 function App() {
+
   return (
     <div className="App">
-      <BasicTabs client={client} />  
+      <BasicTabs client={client}/>  
     </div>
   );
 }

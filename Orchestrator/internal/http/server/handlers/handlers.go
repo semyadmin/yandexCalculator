@@ -15,6 +15,7 @@ import (
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/tasks/queue"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/tasks/responseStruct"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/validator"
+	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/web_socket/client"
 )
 
 func NewServeMux(config *config.Config,
@@ -88,7 +89,6 @@ func getWorkers(conf *config.Config, q *queue.MapQueue) func(w http.ResponseWrit
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
-
 			w.Write(data)
 		}
 	}
@@ -111,15 +111,15 @@ func expressionHandler(config *config.Config,
 				return
 			}
 			slog.Info("Полученное выражение от пользователя:", "выражение:", string(data))
-			// Валидируем входящее выражение
-			str, ok := validator.Validator(string(data))
-			if !ok {
-				slog.Error("Некорректное выражение:", "ошибка:", err)
-				http.Error(w, "Ваше выражение "+str+" некорректное", http.StatusBadRequest)
+			// Формируем новое выражение для вычисления
+			exp, err := arithmetic.NewASTTree(string(data), config, queue, validator.Validator)
+			if err != nil {
+				slog.Error("Проблема с вычислением выражения:", "выражение:", err)
+				http.Error(w, err.Error(), http.StatusBadRequest)
 				return
 			}
 			// Проверяем, есть ли такое выражение в базе. Если есть - отдаем
-			dataInfo, err := storage.GeByExpression(str)
+			dataInfo, err := storage.GeByExpression(exp.Expression)
 			if err == nil {
 				resp := responseStruct.NewExpression(dataInfo.Expression)
 				data, err := json.Marshal(resp)
@@ -129,13 +129,6 @@ func expressionHandler(config *config.Config,
 				w.WriteHeader(http.StatusAccepted)
 				w.Write(data)
 				slog.Info("Такое выражение уже было в базе", "ответ:", string(data))
-				return
-			}
-			// Формируем новое выражение для вычисления
-			exp, err := arithmetic.NewASTTree(str, config, queue)
-			if err != nil {
-				slog.Error("Проблема с вычислением выражения:", "выражение:", err)
-				http.Error(w, err.Error(), http.StatusBadRequest)
 				return
 			}
 			// Сохраняем в память
@@ -149,6 +142,12 @@ func expressionHandler(config *config.Config,
 			}
 			w.WriteHeader(http.StatusAccepted)
 			w.Write(answer)
+			go func() {
+				config.WSmanager.MessageCh <- &client.Message{
+					Payload: answer,
+					Type:    client.ClientExpression,
+				}
+			}()
 			slog.Info("Выражение добавлено в базу", "ответ:", string(answer))
 		}
 	}

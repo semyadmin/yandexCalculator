@@ -22,7 +22,7 @@ import ThreeTabPanel from '../ThreeTabPanel/ThreeTabPanel';
             <Tab label="Мониторинг рабочих агентов"  />
           </Tabs>
         </Box>
-        <CustomTabPanel value={value} index={0} client={client} />
+        <CustomTabPanel value={value} index={0} client={client}/>
         <TwoTabPanel value={value} index={1} client={client} />
         <ThreeTabPanel value={value} index={2} client={client} />
       </Box>

@@ -21,7 +21,6 @@ func serveWS(c *config.Config) func(http.ResponseWriter, *http.Request) {
 			slog.Error("Не удалось обновить соединение ws", err)
 		}
 		client := client.NewWebSocketClient(conn, client.ClientExpression)
-		slog.Info("Клиент ws добавлен", "клиент", *client)
 		c.WSmanager.AddClient(client)
 	}
 }

@@ -5,7 +5,7 @@ import (
 )
 
 // Валидируем выражение
-func Validator(str string) (string, bool) {
+func Validator(str string) bool {
 	str = strings.ReplaceAll(str, " ", "")
 	operators := map[byte]uint8{'(': 0, ')': 0, '+': 1, '-': 1, '*': 2, '/': 2, '.': 0}
 	numbers := map[byte]struct{}{'0': {}, '1': {}, '2': {}, '3': {}, '4': {}, '5': {}, '6': {}, '7': {}, '8': {}, '9': {}}
@@ -19,7 +19,7 @@ func Validator(str string) (string, bool) {
 			}
 		}
 		if !ok {
-			return "", false
+			return false
 		}
 	}
 	if str[0] == '+' ||
@@ -27,7 +27,7 @@ func Validator(str string) (string, bool) {
 		str[0] == '/' ||
 		str[0] == ')' ||
 		str[0] == '.' {
-		return "", false
+		return false
 	}
 	if str[len(str)-1] == '+' ||
 		str[len(str)-1] == '-' ||
@@ -35,7 +35,7 @@ func Validator(str string) (string, bool) {
 		str[len(str)-1] == '/' ||
 		str[len(str)-1] == '(' ||
 		str[len(str)-1] == '.' {
-		return "", false
+		return false
 	}
 	for i := 0; i < len(str)-1; i++ {
 		currentByte := str[i]
@@ -45,7 +45,7 @@ func Validator(str string) (string, bool) {
 		nextByte := str[i+1]
 		if _, ok := operators[currentByte]; !ok {
 			if _, ok := numbers[currentByte]; !ok {
-				return "", false
+				return false
 			}
 		}
 		if currentByte == '*' || currentByte == '/' || currentByte == '+' || currentByte == '-' {
@@ -54,7 +54,7 @@ func Validator(str string) (string, bool) {
 				nextByte == '+' ||
 				nextByte == ')' ||
 				isNegative {
-				return "", false
+				return false
 			}
 			if currentByte == '-' {
 				if i == 0 {
@@ -71,7 +71,7 @@ func Validator(str string) (string, bool) {
 		if currentByte == '(' {
 			if i > 0 {
 				if _, ok := operators[str[i-1]]; !ok {
-					return "", false
+					return false
 				}
 			}
 			countBrackets++
@@ -79,25 +79,25 @@ func Validator(str string) (string, bool) {
 				nextByte == '/' ||
 				nextByte == '+' ||
 				nextByte == ')' {
-				return "", false
+				return false
 			}
 		}
 		if currentByte == '.' {
 			if _, ok := numbers[nextByte]; !ok {
-				return "", false
+				return false
 			}
 		}
 
 		if currentByte == ')' {
 			countBrackets--
 			if countBrackets < 0 {
-				return "", false
+				return false
 			}
 			if nextByte != '*' &&
 				nextByte != '/' &&
 				nextByte != '+' &&
 				nextByte != '-' {
-				return "", false
+				return false
 			}
 		}
 	}
@@ -105,7 +105,7 @@ func Validator(str string) (string, bool) {
 		countBrackets--
 	}
 	if countBrackets != 0 {
-		return "", false
+		return false
 	}
-	return str, true
+	return true
 }

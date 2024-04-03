@@ -1,4 +1,5 @@
 import * as React from 'react';
+import useWebSocket, { ReadyState } from "react-use-websocket"
 
 import Typography from '@mui/material/Typography';
 import Box from '@mui/material/Box';
@@ -15,16 +16,65 @@ export default function CustomTabPanel(props) {
   const [textSnackbarSuccess, setTextSnackbarSuccess] = React.useState('')
   const [textSnackbarError, setTextSnackbarError] = React.useState('')
   const [openError, setOpenError] = React.useState(false);
-  const { value, index, client } = props;
+  const { value, index, client} = props;
   const [textValue, setTextValue] = React.useState('');
-  const [idValue, setIdValue] = React.useState('');
+  /* const [idValue, setIdValue] = React.useState(''); */
   const [answer, setAnswer] = React.useState([]);
+  const address = "ws://" + window.location.host + "/ws"
+  const { sendJsonMessage, lastJsonMessage, readyState } = useWebSocket(
+    address,
+    {
+      share: false,
+      shouldReconnect: () => true,
+    },
+  )
+
+  // Run when the connection state (readyState) changes
+  React.useEffect(() => {
+    console.log("Connection state changed")
+    if (readyState === ReadyState.OPEN) {
+      sendJsonMessage({
+        event: "subscribe",
+        data: {
+          channel: "general-chatroom",
+        },
+      })
+    }
+  }, [readyState])
+
+  // Run when a new WebSocket message is received (lastJsonMessage)
+  React.useEffect(() => {
+    if (lastJsonMessage == null) return
+    const res = {
+      id: lastJsonMessage.ID,
+      expression: lastJsonMessage.Expression,
+      start: lastJsonMessage.Start,
+      end: lastJsonMessage.End,
+      status: lastJsonMessage.Status
+    }
+    console.log(res)
+    let change = false
+    answer.forEach(el => {
+      if (el.id == res.id) {
+        el.status = res.status
+        el.expression = res.expression
+        change = true
+      }
+    })
+    if (change == false) {
+      setAnswer([...answer,res])
+    } else {
+      setAnswer(answer)
+    }
+  }, [lastJsonMessage])
   const onChangeText = (event) => {
     setTextValue(event.target.value);
   }
+  /* 
   const onChangeId = (event) => {
     setIdValue(event.target.value);
-  }
+  } */
+  
   const sendTextValue = () => {
     client
       .post('expression', textValue, {
@@ -33,32 +83,7 @@ export default function CustomTabPanel(props) {
         }
       })
       .then((response) => {
-        const res = {
-          id: response.data.ID,
-          expression: response.data.Expression,
-          start: response.data.Start,
-          end: response.data.End,
-          status: response.data.Status
-        }
-        let change = false
-        answer.forEach(el => {
-          if (el.id == res.id) {
-            el.status = res.status
-            el.expression = res.expression
-            change = true
-          }
-        })
-        if (change == false) {
-          setOpenSuccess(false)
-          setTextSnackbarSuccess(`Выражение ${res.expression} успешно поставлено на обработку`)
-          setOpenSuccess(true)
-          setAnswer([...answer,res])
-        } else {
-          setOpenSuccess(false)
-          setTextSnackbarSuccess(`Выражение ${res.expression} уже обрабатывается`)
-          setOpenSuccess(true)
-          setAnswer(answer)
-        }
+        console.log(response)
       })
       .catch(error => {
         console.log(error)
@@ -66,45 +91,8 @@ export default function CustomTabPanel(props) {
         setOpenError(true)
       })
   }
-  /* const sendIdValue = () => {
-    client
-      .get('/id/'+idValue)
-      .then((response) => {
-        const res = {
-          id: response.data.ID,
-          expression: response.data.Expression,
-          start: response.data.Start,
-          end: response.data.End,
-          status: response.data.Status
-        }
-        let change = false
-        answer.forEach(el => {
-          if (el.id == res.id) {
-            el.status = res.status
-            el.expression = res.expression
-            change = true
-          }
-        })
-        if (change == false) {
-          setOpenSuccess(false)
-          setTextSnackbarSuccess(`Выражение ${res.expression} успешно поставлено на обработку`)
-          setOpenSuccess(true)
-          setAnswer([...answer,res])
-        } else {
-          setOpenSuccess(false)
-          setTextSnackbarSuccess(`Выражение ${res.expression} уже обрабатывается`)
-          setOpenSuccess(true)
-          setAnswer(answer)
-        }
-      })
-      .catch(error => {
-        console.log(error)
-        setTextSnackbarError(`Данного выражения не существует`)
-        setOpenError(true)
-      })
-  }
-   */
-  const setIdValueFromTable = (id) => {
+
+/*   const setIdValueFromTable = (id) => {
     client
     .get('/id/'+id)
     .then((response) => {
@@ -140,7 +128,7 @@ export default function CustomTabPanel(props) {
       setTextSnackbarError(`Данного выражения не существует`)
       setOpenError(true)
     })
-  }
+  } */
   const handleCloseSuccess = (event, reason) => {
     if (reason === 'clickaway') {
       return;
@@ -203,7 +191,7 @@ export default function CustomTabPanel(props) {
               >Найти</Button> */}
             </Grid>
             <Grid sx={{m: 3}}>
-              <BasicTable rows={answer} sendIdValue={setIdValueFromTable} />
+              <BasicTable rows={answer}/>
             </Grid>
           </Grid>
         </Box>      
