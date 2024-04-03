@@ -54,7 +54,7 @@ func (s *Storage) Set(data *arithmetic.ASTTree, status string) {
 	}
 	data.SetID(nextId)
 	// Запускаем вычисление выражения
-	go data.Calculate()
+	go arithmetic.Calculate(data, s.config)
 	newElement := s.queue.PushBack(newDataInfo)
 	s.data[data.GetExpression()] = newElement
 	s.exists[newDataInfo.Id] = data.GetExpression()
@@ -76,7 +76,7 @@ func (s *Storage) SetFromDb(data *arithmetic.ASTTree, status string) {
 		Expression: data,
 		Id:         data.ID,
 	}
-	go data.Calculate()
+	go arithmetic.Calculate(data, s.config)
 	newElement := s.queue.PushBack(newDataInfo)
 	s.data[data.GetExpression()] = newElement
 	s.exists[newDataInfo.Id] = data.GetExpression()

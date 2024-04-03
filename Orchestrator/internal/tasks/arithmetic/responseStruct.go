@@ -1,10 +1,8 @@
-package responseStruct
+package arithmetic
 
 import (
 	"strconv"
 	"time"
-
-	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/tasks/arithmetic"
 )
 
 type Expression struct {
@@ -16,7 +14,7 @@ type Expression struct {
 }
 
 // Конвертируем выражение в структуру для отправки
-func NewExpression(a *arithmetic.ASTTree) Expression {
+func NewExpression(a *ASTTree) Expression {
 	r := Expression{}
 	a.Lock()
 	r.ID = strconv.FormatUint(a.ID, 10)

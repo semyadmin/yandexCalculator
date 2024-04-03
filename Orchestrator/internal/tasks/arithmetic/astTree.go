@@ -1,6 +1,7 @@
 package arithmetic
 
 import (
+	"encoding/json"
 	"errors"
 	"go/ast"
 	"go/parser"
@@ -12,6 +13,7 @@ import (
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/config"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/tasks/queue"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/tasks/upgrade"
+	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/web_socket/client"
 )
 
 type ASTTree struct {
@@ -143,27 +145,6 @@ func duration(a *ASTTree, config *config.Config) int64 {
 	return res
 }
 
-// Вычисляем выражение
-func (a *ASTTree) Calculate() {
-	if a.IsCalc || a.Err != nil {
-		return
-	}
-	ch := make(chan result)
-	go getResult(a, ch, a, "P")
-	res := <-ch
-	if res.err != nil {
-		a.Lock()
-		a.Err = res.err
-		a.Unlock()
-		return
-	}
-	a.Lock()
-	a.Value = res.res
-	a.IsCalc = true
-	a.Unlock()
-	slog.Info("Выражение вычислено", "выражение:", a.Expression, "результат:", a.Value)
-}
-
 // Возвращаем само выражение
 func (a *ASTTree) GetExpression() string {
 	return a.Expression
@@ -172,6 +153,38 @@ func (a *ASTTree) GetExpression() string {
 // Устанавливаем ID выражению
 func (a *ASTTree) SetID(id uint64) {
 	a.ID = id
+}
+
+// Вычисляем выражение
+func Calculate(a *ASTTree, c *config.Config) {
+	if a.IsCalc || a.Err != nil {
+		return
+	}
+	ch := make(chan result)
+	go getResult(a, ch, a, "P")
+	res := <-ch
+	a.Lock()
+	if res.err != nil {
+		a.Err = res.err
+		return
+	} else {
+		a.Value = res.res
+		a.IsCalc = true
+	}
+	a.Unlock()
+	resp := NewExpression(a)
+	answer, err := json.Marshal(resp)
+	if err != nil {
+		slog.Error("Проблема с формированием ответа", "ошибка:", err)
+		return
+	}
+	go func() {
+		c.WSmanager.MessageCh <- &client.Message{
+			Payload: answer,
+			Type:    client.ClientExpression,
+		}
+	}()
+	slog.Info("Выражение вычислено", "выражение:", a.Expression, "результат:", a.Value)
 }
 
 // Печатаем полученное выражение, вычисленное в процессе, что бы

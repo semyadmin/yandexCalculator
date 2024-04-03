@@ -52,7 +52,6 @@ export default function CustomTabPanel(props) {
       end: lastJsonMessage.End,
       status: lastJsonMessage.Status
     }
-    console.log(res)
     let change = false
     answer.forEach(el => {
       if (el.id == res.id) {
@@ -66,6 +65,7 @@ export default function CustomTabPanel(props) {
     } else {
       setAnswer(answer)
     }
+    console.log("answer ", answer)
   }, [lastJsonMessage])
   const onChangeText = (event) => {
     setTextValue(event.target.value);
@@ -82,53 +82,7 @@ export default function CustomTabPanel(props) {
             'Content-Type' : 'text/plain' 
         }
       })
-      .then((response) => {
-        console.log(response)
-      })
-      .catch(error => {
-        console.log(error)
-        setTextSnackbarError(`Введенное выражение некорректно!`)
-        setOpenError(true)
-      })
   }
-
-/*   const setIdValueFromTable = (id) => {
-    client
-    .get('/id/'+id)
-    .then((response) => {
-      const res = {
-        id: response.data.ID,
-        expression: response.data.Expression,
-        start: response.data.Start,
-        end: response.data.End,
-        status: response.data.Status
-      }
-      let change = false
-      answer.forEach(el => {
-        if (el.id == res.id) {
-          el.status = res.status
-          el.expression = res.expression
-          change = true
-        }
-      })
-      if (change == false) {
-        setOpenSuccess(false)
-        setTextSnackbarSuccess(`Выражение ${res.expression} успешно поставлено на обработку`)
-        setOpenSuccess(true)
-        setAnswer([...answer,res])
-      } else {
-        setOpenSuccess(false)
-        setTextSnackbarSuccess(`Выражение ${res.expression} уже обрабатывается`)
-        setOpenSuccess(true)
-        setAnswer(answer)
-      }
-    })
-    .catch(error => {
-      console.log(error)
-      setTextSnackbarError(`Данного выражения не существует`)
-      setOpenError(true)
-    })
-  } */
   const handleCloseSuccess = (event, reason) => {
     if (reason === 'clickaway') {
       return;
@@ -175,20 +129,6 @@ export default function CustomTabPanel(props) {
                 onClick={() => sendTextValue()}
                 sx={{ mt: 3, mb: 2 }}
               >Расчитать</Button>
-             {/*  <TextField 
-                fullWidth
-                id="find-id"
-                label="Найти по ID"
-                value={idValue}
-                sx={{ mt: 3, mb: 2 }}
-                onChange={onChangeId}
-              />
-              <Button
-                fullWidth
-                variant="contained"
-                onClick={() => sendIdValue()}
-                sx={{ mt: 3, mb: 2 }}
-              >Найти</Button> */}
             </Grid>
             <Grid sx={{m: 3}}>
               <BasicTable rows={answer}/>

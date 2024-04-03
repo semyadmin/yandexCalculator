@@ -13,7 +13,6 @@ import (
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/storage/postgresql/postgresql_config"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/tasks/arithmetic"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/tasks/queue"
-	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/tasks/responseStruct"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/validator"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/web_socket/client"
 )
@@ -61,7 +60,7 @@ func getById(storage *memory.Storage) func(w http.ResponseWriter, r *http.Reques
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		resp := responseStruct.NewExpression(exp.Expression)
+		resp := arithmetic.NewExpression(exp.Expression)
 		data, err := json.Marshal(resp)
 		if err != nil {
 			slog.Error("Невозможно сериализовать данные:", "ОШИБКА:", err)
@@ -121,7 +120,7 @@ func expressionHandler(config *config.Config,
 			// Проверяем, есть ли такое выражение в базе. Если есть - отдаем
 			dataInfo, err := storage.GeByExpression(exp.Expression)
 			if err == nil {
-				resp := responseStruct.NewExpression(dataInfo.Expression)
+				resp := arithmetic.NewExpression(dataInfo.Expression)
 				data, err := json.Marshal(resp)
 				if err != nil {
 					http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -134,7 +133,7 @@ func expressionHandler(config *config.Config,
 			// Сохраняем в память
 			storage.Set(exp, "new")
 			postgresql_ast.Add(exp, config)
-			resp := responseStruct.NewExpression(exp)
+			resp := arithmetic.NewExpression(exp)
 			answer, err := json.Marshal(resp)
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)

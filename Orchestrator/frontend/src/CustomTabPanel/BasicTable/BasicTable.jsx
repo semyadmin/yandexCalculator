@@ -14,7 +14,11 @@ import CloseIcon from '@mui/icons-material/Close';
 
 
 
-export default function BasicTable(props) {  
+export default function BasicTable(props) {
+  const { rows } = props;
+  React.useEffect(() => {
+    console.log("rows - ", rows)    
+  }, [rows])
   return (
     <TableContainer component={Paper}>
       <Table sx={{ minWidth: 650 }} aria-label="simple table">
@@ -28,7 +32,7 @@ export default function BasicTable(props) {
           </TableRow>
         </TableHead>
         <TableBody>
-          {props.rows.map((row) => (
+          {rows.map((row) => (
             
             <TableRow
               key={row.id}
