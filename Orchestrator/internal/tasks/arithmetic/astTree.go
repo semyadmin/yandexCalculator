@@ -166,7 +166,6 @@ func Calculate(a *ASTTree, c *config.Config) {
 	a.Lock()
 	if res.err != nil {
 		a.Err = res.err
-		return
 	} else {
 		a.Value = res.res
 		a.IsCalc = true

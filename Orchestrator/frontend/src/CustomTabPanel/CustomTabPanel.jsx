@@ -6,9 +6,9 @@ import Box from '@mui/material/Box';
 import TextField from '@mui/material/TextField';
 import Button from '@mui/material/Button';
 import Grid from '@mui/material/Grid';
-import BasicTable from './BasicTable/BasicTable';
 import Snackbar from '@mui/material/Snackbar';
 import Alert from '@mui/material/Alert';
+import BasicTable from './BasicTable/BasicTable';
 
 
 export default function CustomTabPanel(props) {
@@ -28,6 +28,25 @@ export default function CustomTabPanel(props) {
       shouldReconnect: () => true,
     },
   )
+  React.useEffect(() => {
+    client
+      .get('getexpressions')
+      .then((response) => {
+        if (response.data != null) {
+          response.data.forEach(el => {
+            const res = {
+              id: el.ID,
+              expression: el.Expression,
+              start: el.Start,
+              end: el.End,
+              status: el.Status
+            }
+            answer.push(res)
+          })
+          setAnswer([...answer])
+        }
+      })
+  },[])
 
   // Run when the connection state (readyState) changes
   React.useEffect(() => {
@@ -44,7 +63,7 @@ export default function CustomTabPanel(props) {
 
   // Run when a new WebSocket message is received (lastJsonMessage)
   React.useEffect(() => {
-    if (lastJsonMessage == null) return
+    if (lastJsonMessage != null) {
     const res = {
       id: lastJsonMessage.ID,
       expression: lastJsonMessage.Expression,
@@ -61,11 +80,11 @@ export default function CustomTabPanel(props) {
       }
     })
     if (change == false) {
-      setAnswer([...answer,res])
-    } else {
-      setAnswer(answer)
+      answer.push(res)
     }
+    setAnswer([...answer])
     console.log("answer ", answer)
+  }
   }, [lastJsonMessage])
   const onChangeText = (event) => {
     setTextValue(event.target.value);
@@ -131,7 +150,7 @@ export default function CustomTabPanel(props) {
               >Расчитать</Button>
             </Grid>
             <Grid sx={{m: 3}}>
-              <BasicTable rows={answer}/>
+              <BasicTable rows={answer} />
             </Grid>
           </Grid>
         </Box>      

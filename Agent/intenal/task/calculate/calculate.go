@@ -35,10 +35,10 @@ func Calculate(expression string) (string, error) {
 		time.Sleep(time.Duration(duration) * time.Second)
 		result = first * second
 	case "/":
+		time.Sleep(time.Duration(duration) * time.Second)
 		if second == 0 {
 			return id, errors.New("делить на ноль нельзя")
 		}
-		time.Sleep(time.Duration(duration) * time.Second)
 		result = first / second
 	}
 	return id + " " + strconv.FormatFloat(result, 'f', -1, 64) + " " + array[2], nil

@@ -25,11 +25,19 @@ func NewServeMux(config *config.Config,
 	serveMux := http.NewServeMux()
 	// Регистрируем обработчики событий
 	patchToFront := "./frontend/build"
+	// Страница статики для фронтенда
 	serveMux.Handle("/", http.FileServer(http.Dir(patchToFront)))
+	// Установка продолжительности работы выражений
 	serveMux.HandleFunc("/duration", durationHandler(config))
+	// Получение выражения
 	serveMux.HandleFunc("/expression", expressionHandler(config, queue, storage))
+	// Отдаем все сохраненные выражения
+	serveMux.HandleFunc("/getexpressions", getExpressionsHandler(storage))
+	// Получение выражения по ID
 	serveMux.HandleFunc("/id/", getById(storage))
+	// Регистрируем обработчики для воркеров
 	serveMux.HandleFunc("/workers", getWorkers(config, queue))
+	// Регистрируем обработчики WebSocket для выражений
 	serveMux.HandleFunc("/ws", serveWS(config))
 	return serveMux, nil
 }
@@ -148,6 +156,20 @@ func expressionHandler(config *config.Config,
 				}
 			}()
 			slog.Info("Выражение добавлено в базу", "ответ:", string(answer))
+		}
+	}
+}
+
+func getExpressionsHandler(storage *memory.Storage) func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet {
+			data, err := json.Marshal(storage.GetAll())
+			if err != nil {
+				slog.Error("Невозможно сериализовать данные:", "ОШИБКА:", err)
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			w.Write(data)
 		}
 	}
 }

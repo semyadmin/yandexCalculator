@@ -103,3 +103,12 @@ func (s *Storage) GeById(id uint64) (DataInfo, error) {
 	}
 	return DataInfo{}, errExpressionNotExists
 }
+
+func (s *Storage) GetAll() []arithmetic.Expression {
+	var data []arithmetic.Expression
+	for e := s.queue.Front(); e != nil; e = e.Next() {
+		element := e.Value.(DataInfo)
+		data = append(data, arithmetic.NewExpression(element.Expression))
+	}
+	return data
+}

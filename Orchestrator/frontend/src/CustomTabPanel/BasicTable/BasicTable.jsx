@@ -8,7 +8,6 @@ import TableRow from '@mui/material/TableRow';
 import Paper from '@mui/material/Paper';
 import AutorenewIcon from '@mui/icons-material/Autorenew';
 import CheckIcon from '@mui/icons-material/Check';
-import IconButton from '@mui/material/IconButton';
 import Tooltip from '@mui/material/Tooltip';
 import CloseIcon from '@mui/icons-material/Close';
 
@@ -16,9 +15,6 @@ import CloseIcon from '@mui/icons-material/Close';
 
 export default function BasicTable(props) {
   const { rows } = props;
-  React.useEffect(() => {
-    console.log("rows - ", rows)    
-  }, [rows])
   return (
     <TableContainer component={Paper}>
       <Table sx={{ minWidth: 650 }} aria-label="simple table">
