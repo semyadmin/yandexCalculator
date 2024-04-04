@@ -119,6 +119,9 @@ func create(tr ast.Expr) *ASTTree {
 		a.X = create(nod.X)
 		a.Y = create(nod.Y)
 		a.Operator = nod.Op.String()
+	case *ast.UnaryExpr:
+		a.Value = nod.Op.String() + create(nod.X).Value
+		a.IsCalc = true
 	}
 	return a
 }
@@ -157,7 +160,7 @@ func (a *ASTTree) SetID(id uint64) {
 
 // Вычисляем выражение
 func Calculate(a *ASTTree, c *config.Config) {
-	if a.IsCalc || a.Err != nil {
+	if a.IsCalc || a.Err != nil || a == nil {
 		return
 	}
 	ch := make(chan result)
@@ -202,6 +205,9 @@ func PrintExpression(a *ASTTree) string {
 // Вычисляем каждую операцию. Если уже вычислено
 // то возвращаем результат
 func getResult(a *ASTTree, ch chan result, parent *ASTTree, level string) {
+	if a == nil {
+		return
+	}
 	res := result{}
 	if a.IsCalc {
 		res.res = a.Value

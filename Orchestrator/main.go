@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"go/ast"
+	"go/parser"
 	"go/token"
 	"strconv"
 )
@@ -117,12 +118,14 @@ func prefixNotation(n ast.Node) string {
 }
 
 func main() {
-	array := make(map[string]int)
-	array["a"] = 1
-	array["b"] = 2
-	array["c"] = 3
-	for k := range array {
-		delete(array, k)
+	exp := "-1+(1+2)*3"
+	tr, err := parser.ParseExpr(exp)
+	if err != nil {
+		panic(err)
 	}
-	fmt.Println(array)
+
+	fmt.Println("-------------------")
+	fs := token.NewFileSet()
+	ast.Print(fs, tr)
+	fmt.Println("-------------------")
 }
