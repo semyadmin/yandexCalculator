@@ -1,0 +1,25 @@
+syntax = "proto3";
+package grpc;
+option go_package = "github.com/adminsemy/yandexCalculator/Orchestrator";
+
+message Expression {
+    string expression = 1;
+    double first = 2;
+    double second = 3;
+    string operation = 4;
+    double result = 5;
+}
+
+message Agent {
+    string name = 1;
+    string address = 2;
+}
+
+message Answer {
+    string answer = 1;
+}
+
+service Calculator {
+    rpc Calculate (Expression) returns (Answer);
+    rpc GetExpression (Agent) returns (Expression);
+}
