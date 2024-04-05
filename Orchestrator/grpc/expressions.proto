@@ -8,6 +8,7 @@ message Expression {
     double second = 3;
     string operation = 4;
     double result = 5;
+    string error = 6;
 }
 
 message Agent {
