@@ -6,16 +6,12 @@ import (
 	"sync"
 
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/config"
+	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/entity"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/storage/postgresql/postgresql_config"
-	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/tasks/arithmetic"
 )
 
 var errExpressionNotExists = errors.New("Выражение не существует")
 
-type DataInfo struct {
-	Expression *arithmetic.ASTTree
-	Id         uint64
-}
 type Storage struct {
 	data   map[string]*list.Element
 	exists map[uint64]string
@@ -34,11 +30,11 @@ func New(config *config.Config) *Storage {
 }
 
 // Сохраняем выражение в память
-func (s *Storage) Set(data *arithmetic.ASTTree, status string) {
+func (s *Storage) Set(data *entity.Expression) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
-	if data, ok := s.data[data.GetExpression()]; ok {
-		dataInfo := data.Value.(DataInfo)
+	if data, ok := s.data[data.Expression]; ok {
+		dataInfo := data.Value.(entity.Expression)
 		data.Value = dataInfo
 		return
 	}
@@ -48,67 +44,56 @@ func (s *Storage) Set(data *arithmetic.ASTTree, status string) {
 	s.config.Unlock()
 	// Сохраняем в базу максимальный номер
 	postgresql_config.Save(s.config)
-	newDataInfo := DataInfo{
-		Expression: data,
-		Id:         nextId,
-	}
-	data.SetID(nextId)
-	// Запускаем вычисление выражения
-	go arithmetic.Calculate(data, s.config)
-	newElement := s.queue.PushBack(newDataInfo)
-	s.data[data.GetExpression()] = newElement
-	s.exists[newDataInfo.Id] = data.GetExpression()
+	data.SetId(nextId)
+	newElement := s.queue.PushBack(data)
+	s.data[data.Expression] = newElement
+	s.exists[data.ID] = data.Expression
 }
 
 // Сохраняем выражение в память из базы данных
-func (s *Storage) SetFromDb(data *arithmetic.ASTTree, status string) {
+func (s *Storage) SetFromDb(data *entity.Expression, status string) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
-	if data, ok := s.data[data.GetExpression()]; ok {
-		dataInfo := data.Value.(DataInfo)
-		if dataInfo.Expression.Value == data.Value {
+	if data, ok := s.data[data.Expression]; ok {
+		dataInfo := data.Value.(entity.Expression)
+		if dataInfo.Result == data.Value {
 			return
 		}
 		data.Value = data
 		return
 	}
-	newDataInfo := DataInfo{
-		Expression: data,
-		Id:         data.ID,
-	}
-	go arithmetic.Calculate(data, s.config)
-	newElement := s.queue.PushBack(newDataInfo)
-	s.data[data.GetExpression()] = newElement
-	s.exists[newDataInfo.Id] = data.GetExpression()
+	newElement := s.queue.PushBack(data)
+	s.data[data.Expression] = newElement
+	s.exists[data.ID] = data.Expression
 }
 
 // Возвращаем выражение из памяти по строке выражения
-func (s *Storage) GeByExpression(expression string) (DataInfo, error) {
+func (s *Storage) GeByExpression(expression string) (*entity.Expression, error) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
 	if data, ok := s.data[expression]; ok {
-		return data.Value.(DataInfo), nil
+		return data.Value.(*entity.Expression), nil
 	}
-	return DataInfo{}, errExpressionNotExists
+	return nil, errExpressionNotExists
 }
 
 // Ищем в памяти выражение по ID
-func (s *Storage) GeById(id uint64) (DataInfo, error) {
+func (s *Storage) GeById(id uint64) (*entity.Expression, error) {
 	s.mutex.Lock()
 	data, ok := s.exists[id]
 	s.mutex.Unlock()
 	if ok {
 		return s.GeByExpression(data)
 	}
-	return DataInfo{}, errExpressionNotExists
+	return nil, errExpressionNotExists
 }
 
-func (s *Storage) GetAll() []arithmetic.Expression {
-	var data []arithmetic.Expression
+func (s *Storage) GetAll() []*entity.Expression {
+	var data []*entity.Expression
 	for e := s.queue.Front(); e != nil; e = e.Next() {
-		element := e.Value.(DataInfo)
-		data = append(data, arithmetic.NewExpression(element.Expression))
+		element := e.Value.(*entity.Expression)
+		data = append(data, element)
 	}
 	return data
 }

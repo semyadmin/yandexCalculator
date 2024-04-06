@@ -6,19 +6,18 @@ import (
 	"go/ast"
 	"go/parser"
 	"log/slog"
-	"strings"
 	"sync"
 	"time"
 
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/config"
+	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/entity"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/tasks/queue"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/tasks/upgrade"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/web_socket/client"
 )
 
 type ASTTree struct {
-	ID         uint64
-	Expression string
+	expression *entity.Expression
 	X          *ASTTree
 	Y          *ASTTree
 	Operator   string
@@ -39,27 +38,15 @@ type result struct {
 }
 
 // Создаем AST дерево из выражения
-func NewASTTree(expression string,
+func NewASTTree(expression *entity.Expression,
 	config *config.Config,
 	queue *queue.MapQueue,
-	validator func(string) bool,
 ) (*ASTTree, error) {
-	expression = strings.ReplaceAll(expression, " ", "")
-	if !validator(expression) {
-		return &ASTTree{
-			Expression: expression,
-			Value:      "",
-			IsCalc:     false,
-			IsParent:   true,
-			queue:      queue,
-			config:     config,
-			Start:      time.Now(),
-			Duration:   0,
-			Err:        errors.New("invalid expression"),
-		}, nil
+	if expression.Err != nil {
+		return nil, expression.Err
 	}
 	// Добавляем кавычки, где только возможно
-	upgradeExp := upgrade.Upgrade([]byte(expression))
+	upgradeExp := upgrade.Upgrade([]byte(expression.Expression))
 	slog.Info("Усовершенствованное выражение", "выражение:", string(upgradeExp))
 	// Создаем AST дерево
 	tr, err := parser.ParseExpr(string(upgradeExp))
@@ -68,7 +55,6 @@ func NewASTTree(expression string,
 	}
 	// Преобразуем AST дерево в нашу структуру ASTTree
 	a := create(tr)
-	a.Expression = expression
 	a.queue = queue
 	a.config = config
 	// Вычисляем примерное время выполнения выражения
@@ -80,7 +66,7 @@ func NewASTTree(expression string,
 // Создаем AST дерево из базы данных
 func NewASTTreeDB(
 	id uint64,
-	expression string,
+	expression *entity.Expression,
 	value string,
 	isErr bool,
 	currentResult string,
@@ -92,8 +78,7 @@ func NewASTTreeDB(
 		return nil, err
 	}
 	a := create(tr)
-	a.ID = id
-	a.Expression = expression
+	a.expression = expression
 	a.Value = value
 	if isErr {
 		a.Err = errors.New("error")
@@ -148,16 +133,6 @@ func duration(a *ASTTree, config *config.Config) int64 {
 	return res
 }
 
-// Возвращаем само выражение
-func (a *ASTTree) GetExpression() string {
-	return a.Expression
-}
-
-// Устанавливаем ID выражению
-func (a *ASTTree) SetID(id uint64) {
-	a.ID = id
-}
-
 // Вычисляем выражение
 func Calculate(a *ASTTree, c *config.Config) {
 	if a.IsCalc || a.Err != nil || a == nil {
@@ -174,7 +149,7 @@ func Calculate(a *ASTTree, c *config.Config) {
 		a.IsCalc = true
 	}
 	a.Unlock()
-	resp := NewExpression(a)
+	resp := entity.NewResponseExpression(a.expression.ID, a.expression.Expression, a.Start, a.Duration, "progress", a.IsCalc, a.expression.Result, a.Err)
 	answer, err := json.Marshal(resp)
 	if err != nil {
 		slog.Error("Проблема с формированием ответа", "ошибка:", err)
@@ -186,7 +161,7 @@ func Calculate(a *ASTTree, c *config.Config) {
 			Type:    client.ClientExpression,
 		}
 	}()
-	slog.Info("Выражение вычислено", "выражение:", a.Expression, "результат:", a.Value)
+	slog.Info("Выражение вычислено", "выражение:", a.expression.Expression, "результат:", a.Value)
 }
 
 // Печатаем полученное выражение, вычисленное в процессе, что бы
@@ -267,11 +242,11 @@ func calculate(resX, operator, resY string, parent *ASTTree, level string) resul
 		deadline = parent.config.Divide
 	}
 	send := &queue.SendInfo{
-		Id:         parent.Expression + "-" + level,
+		Id:         parent.expression.Expression + "-" + level,
 		Expression: resX + operator + resY,
 		Result:     resultCh,
 		Deadline:   uint64(deadline),
-		IdExp:      parent.Expression,
+		IdExp:      parent.expression.Expression,
 	}
 	parent.queue.Enqueue(send)
 	res := result{}
