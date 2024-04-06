@@ -27,7 +27,6 @@ type ASTTree struct {
 	queue      *queue.MapQueue
 	config     *config.Config
 	Start      time.Time
-	Duration   int64
 	Err        error
 	sync.Mutex
 }
@@ -57,8 +56,6 @@ func NewASTTree(expression *entity.Expression,
 	a := create(tr)
 	a.queue = queue
 	a.config = config
-	// Вычисляем примерное время выполнения выражения
-	a.Duration = duration(a, config)
 	a.Start = time.Now()
 	return a, nil
 }
@@ -86,7 +83,6 @@ func NewASTTreeDB(
 	a.IsCalc = true
 	a.queue = queue
 	a.config = config
-	a.Duration = duration(a, config)
 	a.Start = time.Now()
 	return a, nil
 }
@@ -111,28 +107,6 @@ func create(tr ast.Expr) *ASTTree {
 	return a
 }
 
-func duration(a *ASTTree, config *config.Config) int64 {
-	if a == nil {
-		return 0
-	}
-	res := int64(0)
-	if a.Operator == "+" {
-		res += config.Plus
-	}
-	if a.Operator == "-" {
-		res += config.Minus
-	}
-	if a.Operator == "*" {
-		res += config.Multiply
-	}
-	if a.Operator == "*" {
-		res += config.Divide
-	}
-	res += duration(a.X, config)
-	res += duration(a.Y, config)
-	return res
-}
-
 // Вычисляем выражение
 func Calculate(a *ASTTree, c *config.Config) {
 	if a.IsCalc || a.Err != nil || a == nil {
@@ -149,7 +123,7 @@ func Calculate(a *ASTTree, c *config.Config) {
 		a.IsCalc = true
 	}
 	a.Unlock()
-	resp := entity.NewResponseExpression(a.expression.ID, a.expression.Expression, a.Start, a.Duration, "progress", a.IsCalc, a.expression.Result, a.Err)
+	resp := entity.NewResponseExpression(a.expression.ID, a.expression.Expression, a.Start, a.expression.Duration, a.IsCalc, a.expression.Result, a.Err)
 	answer, err := json.Marshal(resp)
 	if err != nil {
 		slog.Error("Проблема с формированием ответа", "ошибка:", err)

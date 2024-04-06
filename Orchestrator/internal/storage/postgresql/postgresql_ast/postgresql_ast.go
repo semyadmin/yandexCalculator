@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"time"
 
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/config"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/storage/memory"
@@ -26,7 +25,7 @@ const (
 // Add — добавляет запись в базу данных
 func Add(model *arithmetic.ASTTree, conf *config.Config) {
 	go func() {
-		db := postgresql.DbConnect(conf)
+		/* db := postgresql.DbConnect(conf)
 		defer db.Close()
 		ok, err := GetByExpression(model.Expression, conf)
 		if err != nil {
@@ -67,7 +66,7 @@ func Add(model *arithmetic.ASTTree, conf *config.Config) {
 			slog.Info("Не удалось добавить запись в базу данных", "ошибка:", err)
 			return
 		}
-		slog.Info("Добавление записи в базу данных", "выражение:", model.Expression)
+		slog.Info("Добавление записи в базу данных", "выражение:", model.Expression) */
 	}()
 }
 
@@ -96,7 +95,7 @@ func GetByExpression(exp string, conf *config.Config) (bool, error) {
 // GetAll — получает все записи из базы данных
 func GetAll(conf *config.Config, q *queue.MapQueue, m *memory.Storage) {
 	go func() {
-		db := postgresql.DbConnect(conf)
+		/* db := postgresql.DbConnect(conf)
 		defer db.Close()
 		query := fmt.Sprintf("SELECT %s, %s, %s, %s, %s FROM %s", baseId, expression, value, errColumn, currentResult, tableName)
 		sql, err := db.Prepare(query)
@@ -131,14 +130,14 @@ func GetAll(conf *config.Config, q *queue.MapQueue, m *memory.Storage) {
 			}
 			entity.Unlock()
 			m.SetFromDb(entity, "saved")
-		}
+		} */
 	}()
 }
 
 // Обновляем выражение по его строке выражения
 func Update(conf *config.Config, q *queue.MapQueue, m *memory.Storage) {
 	go func() {
-		for {
+		/* for {
 			q.Lock()
 			items := []string{}
 			for item := range q.Update {
@@ -198,6 +197,6 @@ func Update(conf *config.Config, q *queue.MapQueue, m *memory.Storage) {
 			}
 			db.Close()
 			time.Sleep(1 * time.Second)
-		}
+		} */
 	}()
 }

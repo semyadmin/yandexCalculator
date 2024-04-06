@@ -8,12 +8,11 @@ import (
 	"strconv"
 
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/config"
+	newexpression "github.com/adminsemy/yandexCalculator/Orchestrator/internal/services/new_expression"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/storage/memory"
-	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/storage/postgresql/postgresql_ast"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/storage/postgresql/postgresql_config"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/tasks/arithmetic"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/tasks/queue"
-	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/validator"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/web_socket/client"
 )
 
@@ -118,31 +117,8 @@ func expressionHandler(config *config.Config,
 				return
 			}
 			slog.Info("Полученное выражение от пользователя:", "выражение:", string(data))
-			// Формируем новое выражение для вычисления
-			exp, err := arithmetic.NewASTTree(string(data), config, queue, validator.Validator)
-			if err != nil {
-				slog.Error("Проблема с вычислением выражения:", "выражение:", err)
-				http.Error(w, err.Error(), http.StatusBadRequest)
-				return
-			}
-			// Проверяем, есть ли такое выражение в базе. Если есть - отдаем
-			dataInfo, err := storage.GeByExpression(exp.Expression)
-			if err == nil {
-				resp := arithmetic.NewExpression(dataInfo.Expression)
-				data, err := json.Marshal(resp)
-				if err != nil {
-					http.Error(w, err.Error(), http.StatusInternalServerError)
-				}
-				w.WriteHeader(http.StatusAccepted)
-				w.Write(data)
-				slog.Info("Такое выражение уже было в базе", "ответ:", string(data))
-				return
-			}
-			// Сохраняем в память
-			storage.Set(exp, "new")
-			postgresql_ast.Add(exp, config)
-			resp := arithmetic.NewExpression(exp)
-			answer, err := json.Marshal(resp)
+
+			answer, err := newexpression.NewExpression(config, storage, queue, string(data))
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
