@@ -6,8 +6,8 @@ import (
 	"go/ast"
 	"go/parser"
 	"log/slog"
+	"strconv"
 	"sync"
-	"time"
 
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/config"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/entity"
@@ -26,7 +26,6 @@ type ASTTree struct {
 	IsParent   bool
 	queue      *queue.MapQueue
 	config     *config.Config
-	Start      time.Time
 	Err        error
 	sync.Mutex
 }
@@ -54,9 +53,11 @@ func NewASTTree(expression *entity.Expression,
 	}
 	// Преобразуем AST дерево в нашу структуру ASTTree
 	a := create(tr)
+	a.expression = expression
 	a.queue = queue
 	a.config = config
-	a.Start = time.Now()
+	a.IsCalc = expression.IsCalc
+	go a.calc()
 	return a, nil
 }
 
@@ -83,7 +84,6 @@ func NewASTTreeDB(
 	a.IsCalc = true
 	a.queue = queue
 	a.config = config
-	a.Start = time.Now()
 	return a, nil
 }
 
@@ -108,34 +108,41 @@ func create(tr ast.Expr) *ASTTree {
 }
 
 // Вычисляем выражение
-func Calculate(a *ASTTree, c *config.Config) {
+func (a *ASTTree) calc() {
 	if a.IsCalc || a.Err != nil || a == nil {
 		return
 	}
+	var err error
 	ch := make(chan result)
 	go getResult(a, ch, a, "P")
 	res := <-ch
 	a.Lock()
 	if res.err != nil {
 		a.Err = res.err
+		a.expression.Err = res.err
 	} else {
 		a.Value = res.res
 		a.IsCalc = true
+		a.expression.Result, err = strconv.ParseFloat(res.res, 64)
+		if err != nil {
+			a.expression.Err = err
+		}
+		a.expression.IsCalc = true
 	}
 	a.Unlock()
-	resp := entity.NewResponseExpression(a.expression.ID, a.expression.Expression, a.Start, a.expression.Duration, a.IsCalc, a.expression.Result, a.Err)
+	resp := entity.NewResponseExpression(a.expression.ID, a.expression.Expression, a.expression.Start, a.expression.Duration, a.IsCalc, a.expression.Result, a.Err)
 	answer, err := json.Marshal(resp)
 	if err != nil {
 		slog.Error("Проблема с формированием ответа", "ошибка:", err)
 		return
 	}
 	go func() {
-		c.WSmanager.MessageCh <- &client.Message{
+		a.config.WSmanager.MessageCh <- &client.Message{
 			Payload: answer,
 			Type:    client.ClientExpression,
 		}
 	}()
-	slog.Info("Выражение вычислено", "выражение:", a.expression.Expression, "результат:", a.Value)
+	slog.Info("Выражение вычислено", "выражение:", a.expression.Expression, "результат:", a.expression.Result)
 }
 
 // Печатаем полученное выражение, вычисленное в процессе, что бы

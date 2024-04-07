@@ -3,10 +3,12 @@ package entity
 import (
 	"errors"
 	"strings"
+	"time"
 )
 
 type Expression struct {
 	ID                   uint64
+	Start                time.Time
 	Duration             int64
 	Expression           string
 	CalculatedExpression string
@@ -18,9 +20,9 @@ type Expression struct {
 func NewExpression(exp string, calcExp string, validator func(string) bool) *Expression {
 	exp = strings.ReplaceAll(exp, " ", "")
 	if !validator(exp) {
-		return &Expression{Expression: exp, Err: errors.New("invalid expression")}
+		return &Expression{Expression: exp, Err: errors.New("invalid expression"), Start: time.Now()}
 	}
-	return &Expression{Expression: exp, CalculatedExpression: calcExp}
+	return &Expression{Expression: exp, CalculatedExpression: calcExp, Start: time.Now()}
 }
 
 func (e *Expression) SetResult(r float64, err error) {

@@ -75,12 +75,13 @@ func (m *MapQueue) Enqueue(exp *SendInfo) {
 
 // Извлекаем операцию из очереди и записываем ее в кэш
 func (m *MapQueue) Dequeue() (*SendInfo, bool) {
-	m.Lock()
-	defer m.Unlock()
-	exp, ok := m.queue.Dequeue()
+	e, ok := (m.queue.Dequeue())
 	if !ok {
 		return nil, false
 	}
+	exp := e.(*SendInfo)
+	m.Lock()
+	defer m.Unlock()
 	data := Data{
 		Exp:          exp,
 		TimeDeadLine: time.Now().Add(time.Duration(exp.Deadline)*time.Second + 5*time.Second),

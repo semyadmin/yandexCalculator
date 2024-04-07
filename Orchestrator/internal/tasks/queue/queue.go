@@ -1,13 +1,12 @@
 package queue
 
 import (
-	"log/slog"
 	"sync/atomic"
 	"unsafe"
 )
 
 type Node struct {
-	value *SendInfo
+	value any
 	next  *Node
 }
 
@@ -24,7 +23,7 @@ func NewLockFreeQueue() *LockFreeQueue {
 }
 
 // Добавляем в атомарную очередь
-func (l *LockFreeQueue) Enqueue(value *SendInfo) {
+func (l *LockFreeQueue) Enqueue(value any) {
 	node := &Node{value: value}
 	for {
 		tailPointer := unsafe.Pointer((*Node)(atomic.LoadPointer(&l.tail)))
@@ -45,14 +44,13 @@ func (l *LockFreeQueue) Enqueue(value *SendInfo) {
 		oldNode.next = node
 		ptr := unsafe.Pointer(node)
 		if atomic.CompareAndSwapPointer(&l.head, ptrOldNode, ptr) {
-			slog.Info("Add", "node", node.value.Expression, "t", l.tail, "h", l.head)
 			break
 		}
 	}
 }
 
 // Извлекаем из атомарной очереди
-func (l *LockFreeQueue) Dequeue() (*SendInfo, bool) {
+func (l *LockFreeQueue) Dequeue() (any, bool) {
 	var result *Node
 	for {
 		result = (*Node)(atomic.LoadPointer(&l.tail))

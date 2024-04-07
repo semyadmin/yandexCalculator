@@ -10,7 +10,7 @@ import (
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/storage/postgresql/postgresql_config"
 )
 
-var errExpressionNotExists = errors.New("Выражение не существует")
+var ErrExpressionNotExists = errors.New("Выражение не существует")
 
 type Storage struct {
 	data   map[string]*list.Element
@@ -33,9 +33,8 @@ func New(config *config.Config) *Storage {
 func (s *Storage) Set(data *entity.Expression) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
-	if data, ok := s.data[data.Expression]; ok {
-		dataInfo := data.Value.(entity.Expression)
-		data.Value = dataInfo
+	if exp, ok := s.data[data.Expression]; ok {
+		data = exp.Value.(*entity.Expression)
 		return
 	}
 	s.config.Lock()
@@ -75,7 +74,7 @@ func (s *Storage) GeByExpression(expression string) (*entity.Expression, error) 
 	if data, ok := s.data[expression]; ok {
 		return data.Value.(*entity.Expression), nil
 	}
-	return nil, errExpressionNotExists
+	return nil, ErrExpressionNotExists
 }
 
 // Ищем в памяти выражение по ID
@@ -86,7 +85,7 @@ func (s *Storage) GeById(id uint64) (*entity.Expression, error) {
 	if ok {
 		return s.GeByExpression(data)
 	}
-	return nil, errExpressionNotExists
+	return nil, ErrExpressionNotExists
 }
 
 func (s *Storage) GetAll() []*entity.Expression {

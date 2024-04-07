@@ -1,7 +1,8 @@
-package newexpression
+package expression
 
 import (
 	"encoding/json"
+	"errors"
 	"time"
 
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/config"
@@ -19,21 +20,24 @@ type NewExpressionAst struct {
 }
 
 func NewExpression(conf *config.Config, storage *memory.Storage, queue *queue.MapQueue, expression string) ([]byte, error) {
-	exp := entity.NewExpression(expression, "", validator.Validator)
-	if exp.Err == nil {
-		exp.Duration = duration(exp.Expression, conf)
-	}
-	storage.Set(exp)
-	ast, err := arithmetic.NewASTTree(exp, conf, queue)
-	if err != nil {
-		resp := entity.NewResponseExpression(exp.ID, exp.Expression, time.Now(), 0, false, 0, err)
-		data, e := json.Marshal(resp)
-		if e != nil {
-			return nil, e
+	exp, err := storage.GeByExpression(expression)
+	if errors.Is(err, memory.ErrExpressionNotExists) {
+		exp = entity.NewExpression(expression, "", validator.Validator)
+		storage.Set(exp)
+		_, err := arithmetic.NewASTTree(exp, conf, queue)
+		if exp.Err == nil {
+			exp.Duration = duration(exp.Expression, conf)
 		}
-		return data, nil
+		if err != nil {
+			resp := entity.NewResponseExpression(exp.ID, exp.Expression, time.Now(), 0, false, 0, err)
+			data, e := json.Marshal(resp)
+			if e != nil {
+				return nil, e
+			}
+			return data, nil
+		}
 	}
-	resp := entity.NewResponseExpression(exp.ID, exp.Expression, ast.Start, exp.Duration, ast.IsCalc, exp.Result, exp.Err)
+	resp := entity.NewResponseExpression(exp.ID, exp.Expression, exp.Start, exp.Duration, exp.IsCalc, exp.Result, exp.Err)
 	data, e := json.Marshal(resp)
 	if e != nil {
 		return nil, e

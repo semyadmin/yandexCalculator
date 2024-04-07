@@ -5,13 +5,12 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
-	"strconv"
 
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/config"
-	newexpression "github.com/adminsemy/yandexCalculator/Orchestrator/internal/services/new_expression"
+	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/services/expression"
+	newexpression "github.com/adminsemy/yandexCalculator/Orchestrator/internal/services/expression"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/storage/memory"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/storage/postgresql/postgresql_config"
-	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/tasks/arithmetic"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/tasks/queue"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/web_socket/client"
 )
@@ -55,23 +54,9 @@ func Decorate(next http.Handler, middleware ...func(http.Handler) http.Handler) 
 func getById(storage *memory.Storage) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		patch := r.URL.Path
-		id, err := strconv.ParseUint(patch[len("/id/"):], 10, 64)
+		data, err := expression.GetById(storage, patch[len("/id/"):])
 		if err != nil {
-			slog.Error("Невозможно распарсить ID:", "ОШИБКА:", err)
 			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
-		exp, err := storage.GeById(id)
-		if err != nil {
-			slog.Error("Невозможно получить данные по ID:", "ОШИБКА:", err, "ID:", id)
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
-		resp := arithmetic.NewExpression(exp.Expression)
-		data, err := json.Marshal(resp)
-		if err != nil {
-			slog.Error("Невозможно сериализовать данные:", "ОШИБКА:", err)
-			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 		w.Write(data)
