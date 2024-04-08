@@ -1,43 +1,36 @@
 package queue
 
 import (
+	"fmt"
 	"log/slog"
-	"strconv"
-	"strings"
 	"sync"
 	"time"
 
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/config"
+	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/entity"
 )
 
-type SendInfo struct {
-	Id         string
-	Expression string
-	Result     chan string
-	Deadline   uint64
-	IdExp      string
-}
 type MapQueue struct {
 	sync.RWMutex
 	mapQueue  map[string]Data
-	doneQueue map[string]string
+	doneQueue map[string]entity.Operation
 	Update    map[string]struct{}
 	queue     *LockFreeQueue
 	c         *config.Config
 }
 
 type Data struct {
-	Exp          *SendInfo
+	Exp          entity.Operation
 	TimeDeadLine time.Time
 	inQueue      bool
-	result       string
+	result       float64
 }
 
 func NewMapQueue(queue *LockFreeQueue, c *config.Config) *MapQueue {
 	m := &MapQueue{
 		queue:     queue,
 		mapQueue:  make(map[string]Data),
-		doneQueue: make(map[string]string),
+		doneQueue: make(map[string]entity.Operation),
 		Update:    make(map[string]struct{}),
 		c:         c,
 	}
@@ -46,79 +39,80 @@ func NewMapQueue(queue *LockFreeQueue, c *config.Config) *MapQueue {
 }
 
 // Добавляем операцию в очередь
-func (m *MapQueue) Enqueue(exp *SendInfo) {
+func (m *MapQueue) Enqueue(exp entity.Operation) {
 	m.RLock()
 	// Проверяем есть ли уже вычисленное выражение
-	// Если есть - возвращаем его в канал
-	if data, ok := m.doneQueue[exp.Id]; ok {
-		exp.Result <- data
+	if data, ok := m.doneQueue[exp.Id()]; ok {
+		exp.Result(data.GetResult())
+		err := data.GetError()
+		if err != nil {
+			exp.Error(fmt.Sprint(err))
+		}
 		m.RUnlock()
 		return
 	}
-	data, ok := m.mapQueue[exp.Id]
+	_, ok := m.mapQueue[exp.Id()]
 	m.RUnlock()
 	if ok {
-		if data.result != "" {
-			slog.Info("Выражение уже было вычислено", "операция:", exp.Id)
-			exp.Result <- data.result
-			return
-		} else {
-			m.Lock()
-			delete(m.mapQueue, exp.Id)
-			m.Unlock()
-		}
+		m.Lock()
+		delete(m.mapQueue, exp.Id())
+		m.Unlock()
 	}
-
 	m.queue.Enqueue(exp)
 	slog.Info("Операция добавлена в очередь", "операция:", exp)
 }
 
 // Извлекаем операцию из очереди и записываем ее в кэш
-func (m *MapQueue) Dequeue() (*SendInfo, bool) {
+func (m *MapQueue) Dequeue() (entity.Operation, bool) {
 	e, ok := (m.queue.Dequeue())
 	if !ok {
 		return nil, false
 	}
-	exp := e.(*SendInfo)
+	exp := e.(entity.Operation)
+	deadline := int64(0)
+	switch exp.Operation() {
+	case "+":
+		deadline = m.c.Plus
+	case "-":
+		deadline = m.c.Minus
+	case "*":
+		deadline = m.c.Multiply
+	case "/":
+		deadline = m.c.Divide
+
+	}
 	m.Lock()
 	defer m.Unlock()
 	data := Data{
 		Exp:          exp,
-		TimeDeadLine: time.Now().Add(time.Duration(exp.Deadline)*time.Second + 5*time.Second),
+		TimeDeadLine: time.Now().Add(time.Duration(deadline)*time.Second + 5*time.Second),
 		inQueue:      true,
-		result:       "",
+		result:       0,
 	}
-	m.mapQueue[exp.Id] = data
+	m.mapQueue[exp.Id()] = data
 	return exp, true
 }
 
 // Отмечаем вычисленное выражение и возвращаем результат
-func (m *MapQueue) Done(result string) {
-	array := strings.Split(result, " ")
+func (m *MapQueue) Done(id string, result float64, err string) {
 	m.RLock()
-	data, ok := m.mapQueue[array[0]]
-	m.RUnlock()
+	defer m.RUnlock()
+	data, ok := m.mapQueue[id]
 	if !ok {
-		duration, err := strconv.ParseInt(array[2], 10, 64)
-		if err != nil {
-			duration = 0
+		_, ok := m.doneQueue[id]
+		if ok {
+			return
 		}
-		m.mapQueue[array[0]] = Data{
-			Exp:          nil,
-			TimeDeadLine: time.Now().Add(time.Duration(duration)*time.Second + 5*time.Second),
-			inQueue:      false,
-			result:       result,
-		}
+		res := entity.NewOperation(id, 0, 0, "")
+		res.Result(result)
+		res.Error(err)
+		m.doneQueue[id] = res
 		return
 	}
-	m.Lock()
-	delete(m.mapQueue, array[0])
-	m.doneQueue[data.Exp.Id] = array[1]
-	m.Unlock()
-	data.Exp.Result <- array[1]
-	m.Lock()
-	m.Update[data.Exp.IdExp] = struct{}{}
-	m.Unlock()
+	data.Exp.Result(result)
+	data.Exp.Error(err)
+	m.doneQueue[id] = data.Exp
+	delete(m.mapQueue, id)
 }
 
 // Длина очереди
@@ -156,7 +150,7 @@ func (m *MapQueue) GetQueue() []string {
 	m.RLock()
 	array := make([]string, 0, len(m.mapQueue))
 	for _, data := range m.mapQueue {
-		array = append(array, data.Exp.Expression)
+		array = append(array, data.Exp.Id())
 	}
 	m.RUnlock()
 	return array

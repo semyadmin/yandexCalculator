@@ -2,9 +2,14 @@ package server
 
 import (
 	"context"
+	"fmt"
+	"log/slog"
+	"net"
+	"os"
 
 	pb "github.com/adminsemy/yandexCalculator/Orchestrator/grpc"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/config"
+	"google.golang.org/grpc"
 )
 
 var answer string = "Done"
@@ -28,9 +33,31 @@ type ServerGRPC struct {
 }
 
 func NewServerGRPC(conf *config.Config, queue expressions) *ServerGRPC {
-	return &ServerGRPC{
+	s := &ServerGRPC{
 		conf:  conf,
 		queue: queue,
+	}
+
+	return s
+}
+
+func (s *ServerGRPC) Start() {
+	host := s.conf.Host
+	port := s.conf.TCPPort
+
+	addr := fmt.Sprintf("%s:%s", host, port)
+	lis, err := net.Listen("tcp", addr) // будем ждать запросы по этому адресу
+	if err != nil {
+		slog.Error("Ошибка запуска TCP/IP сервера:", "ошибка:", err)
+		os.Exit(1)
+	}
+
+	slog.Info("GRPC сервер запущен на " + addr)
+	srv := grpc.NewServer()
+	pb.RegisterCalculatorServer(srv, s)
+	if err := srv.Serve(lis); err != nil {
+		slog.Error("Ошибка запуска GRPC сервера:", "ошибка:", err)
+		os.Exit(1)
 	}
 }
 

@@ -21,7 +21,7 @@ type ASTTree struct {
 	X          *ASTTree
 	Y          *ASTTree
 	Operator   string
-	Value      string
+	Value      float64
 	IsCalc     bool
 	IsParent   bool
 	queue      *queue.MapQueue
@@ -32,7 +32,7 @@ type ASTTree struct {
 
 type result struct {
 	err error
-	res string
+	res float64
 }
 
 // Создаем AST дерево из выражения
@@ -77,7 +77,7 @@ func NewASTTreeDB(
 	}
 	a := create(tr)
 	a.expression = expression
-	a.Value = value
+	a.Value, _ = strconv.ParseFloat(value, 64)
 	if isErr {
 		a.Err = errors.New("error")
 	}
@@ -91,7 +91,7 @@ func create(tr ast.Expr) *ASTTree {
 	a := new(ASTTree)
 	switch nod := tr.(type) {
 	case *ast.BasicLit:
-		a.Value = nod.Value
+		a.Value, _ = strconv.ParseFloat(nod.Value, 64)
 		a.IsCalc = true
 	case *ast.ParenExpr:
 		a.X = create(nod.X)
@@ -101,7 +101,11 @@ func create(tr ast.Expr) *ASTTree {
 		a.Y = create(nod.Y)
 		a.Operator = nod.Op.String()
 	case *ast.UnaryExpr:
-		a.Value = nod.Op.String() + create(nod.X).Value
+		v := create(nod.X).Value
+		if nod.Op.String() == "-" {
+			v = -v
+		}
+		a.Value = v
 		a.IsCalc = true
 	}
 	return a
@@ -123,8 +127,8 @@ func (a *ASTTree) calc() {
 	} else {
 		a.Value = res.res
 		a.IsCalc = true
-		a.expression.Result, err = strconv.ParseFloat(res.res, 64)
-		if err != nil {
+		a.expression.Result = res.res
+		if res.err != nil {
 			a.expression.Err = err
 		}
 		a.expression.IsCalc = true
@@ -149,7 +153,7 @@ func (a *ASTTree) calc() {
 // не считать все выражение заново
 func PrintExpression(a *ASTTree) string {
 	if a.IsCalc {
-		return a.Value
+		return strconv.FormatFloat(a.Value, 'f', -1, 64)
 	}
 	if a.IsParent {
 		return "(" + PrintExpression(a.X) + ")"
@@ -209,31 +213,13 @@ func getResult(a *ASTTree, ch chan result, parent *ASTTree, level string) {
 }
 
 // Вычисляем операцию в зависимости от оператора
-func calculate(resX, operator, resY string, parent *ASTTree, level string) result {
-	resultCh := make(chan string)
-	deadline := int64(0)
-	switch operator {
-	case "+":
-		deadline = parent.config.Plus
-	case "-":
-		deadline = parent.config.Minus
-	case "*":
-		deadline = parent.config.Multiply
-	case "/":
-		deadline = parent.config.Divide
-	}
-	send := &queue.SendInfo{
-		Id:         parent.expression.Expression + "-" + level,
-		Expression: resX + operator + resY,
-		Result:     resultCh,
-		Deadline:   uint64(deadline),
-		IdExp:      parent.expression.Expression,
-	}
+func calculate(resX float64, operator string, resY float64, parent *ASTTree, level string) result {
+	send := entity.NewOperation(parent.expression.Expression+"-"+level, resX, resY, operator)
 	parent.queue.Enqueue(send)
 	res := result{}
-	resExp := <-send.Result
-	if resExp == "error" {
-		res.err = errors.New("error")
+	resExp := <-send.ResultChan()
+	if send.GetError() != nil {
+		res.err = send.GetError()
 		return res
 	}
 	res.res = resExp

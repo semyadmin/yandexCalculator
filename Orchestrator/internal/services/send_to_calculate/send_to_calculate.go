@@ -1,5 +1,7 @@
 package sendtocalculate
 
+import "github.com/adminsemy/yandexCalculator/Orchestrator/internal/tasks/queue"
+
 type expression interface {
 	Id() string
 	First() float64
@@ -8,15 +10,11 @@ type expression interface {
 	Result(float64)
 	Error(string)
 }
-type queue interface {
-	Dequeue() (expression, error)
-	Done(id string, result string, err error)
-}
 type SendToCalculate struct {
-	queue queue
+	queue *queue.MapQueue
 }
 
-func New(queue queue) *SendToCalculate {
+func NewSendToCalculate(queue *queue.MapQueue) *SendToCalculate {
 	return &SendToCalculate{
 		queue: queue,
 	}
