@@ -28,7 +28,7 @@ func New(config *config.Config, id int) (*Client, error) {
 
 // Берем данные от оркестратора
 func (c *Client) Start() error {
-	address := c.config.Host + ":" + c.config.Port
+	address := c.config.GrpcHost + ":" + c.config.Port
 	conn, err := net.Dial("tcp", address)
 	if err != nil {
 		slog.Error("не удалось подключиться к оркестратору", "ошибка", err, "агент", c.id)
@@ -73,7 +73,7 @@ func (c *Client) calculate(expression string) {
 		result = fmt.Sprint(result, " error ", err)
 	}
 	for {
-		conn, err := net.Dial("tcp", c.config.Host+":"+c.config.Port)
+		conn, err := net.Dial("tcp", c.config.GrpcHost+":"+c.config.Port)
 		if err != nil {
 			slog.Error("не удалось подключиться к оркестратору", "ошибка", err, "агент", c.id)
 			time.Sleep(5 * time.Second)

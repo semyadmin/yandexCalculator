@@ -16,7 +16,7 @@ func Ping(conf *config.Config) {
 	go func() {
 		goroutines := strconv.FormatInt(int64(conf.MaxGoroutines), 10)
 		for {
-			address := conf.Host + ":" + conf.Port
+			address := conf.GrpcHost + ":" + conf.Port
 			conn, err := net.Dial("tcp", address)
 			if err != nil {
 				time.Sleep(1 * time.Second)

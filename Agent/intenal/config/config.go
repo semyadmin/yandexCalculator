@@ -6,11 +6,13 @@ import (
 	"strconv"
 	"sync/atomic"
 
+	"github.com/adminsemy/yandexCalculator/Agent/intenal/task/hostname"
 	"github.com/joho/godotenv"
 )
 
 type Config struct {
 	Host           string
+	GrpcHost       string
 	Port           string
 	MaxGoroutines  int
 	WorkGoroutines atomic.Int64
@@ -38,7 +40,8 @@ func New() *Config {
 		maxGoroutines = "5"
 	}
 	config := &Config{
-		Host:          host,
+		Host:          hostname.GetHostname(),
+		GrpcHost:      host,
 		Port:          port,
 		MaxGoroutines: parseInt(maxGoroutines),
 	}
