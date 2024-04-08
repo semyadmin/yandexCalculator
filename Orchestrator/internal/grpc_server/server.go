@@ -1,4 +1,4 @@
-package server
+package grpcserver
 
 import (
 	"context"
@@ -14,25 +14,28 @@ import (
 
 var answer string = "Done"
 
-type expression interface {
+type Expression interface {
 	Id() string
 	First() float64
 	Second() float64
 	Operation() string
+	Result(float64)
+	Error(string)
 }
 
-type expressions interface {
-	Dequeue() (expression, error)
+type Expressions interface {
+	Dequeue() (Expression, error)
 	Done(id string, result float64, err string)
 }
 
 type ServerGRPC struct {
 	conf  *config.Config
-	queue expressions
+	queue Expressions
+	srv   *grpc.Server
 	pb.CalculatorServer
 }
 
-func NewServerGRPC(conf *config.Config, queue expressions) *ServerGRPC {
+func NewServerGRPC(conf *config.Config, queue Expressions) *ServerGRPC {
 	s := &ServerGRPC{
 		conf:  conf,
 		queue: queue,
@@ -54,11 +57,17 @@ func (s *ServerGRPC) Start() {
 
 	slog.Info("GRPC сервер запущен на " + addr)
 	srv := grpc.NewServer()
+	s.srv = srv
 	pb.RegisterCalculatorServer(srv, s)
 	if err := srv.Serve(lis); err != nil {
 		slog.Error("Ошибка запуска GRPC сервера:", "ошибка:", err)
 		os.Exit(1)
 	}
+}
+
+func (s *ServerGRPC) Stop() {
+	slog.Info("GRPC сервер остановлен")
+	s.srv.Stop()
 }
 
 func (s *ServerGRPC) GetExpression(ctx context.Context, agent *pb.Agent) (*pb.Expression, error) {

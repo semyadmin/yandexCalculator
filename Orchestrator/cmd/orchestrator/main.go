@@ -7,12 +7,13 @@ import (
 	"os/signal"
 
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/config"
+	grpcserver "github.com/adminsemy/yandexCalculator/Orchestrator/internal/grpc_server"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/http/server"
+	sendtocalculate "github.com/adminsemy/yandexCalculator/Orchestrator/internal/services/send_to_calculate"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/storage/memory"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/storage/postgresql/postgresql_ast"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/storage/postgresql/postgresql_config"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/tasks/queue"
-	serverTCP "github.com/adminsemy/yandexCalculator/Orchestrator/internal/tcp/server"
 )
 
 func main() {
@@ -28,16 +29,11 @@ func main() {
 	postgresql_ast.GetAll(conf, newQueue, storage)
 	// Горутина для обновления результатов выражений
 	postgresql_ast.Update(conf, newQueue, storage)
-	// Запускаем TCP/IP сервер
-	tcpServer, err := serverTCP.NewServer(":"+conf.TCPPort, conf, newQueue, storage)
-	if err != nil {
-		slog.Error("Ошибка запуска TCP/IP сервера:", "ошибка:", err)
-		os.Exit(1)
-	}
-	slog.Info("Запуск TCP/IP сервера на порту " + conf.TCPPort)
-	tcpServer.Start()
-	slog.Info("Оркестратор запущен")
+	// Запускаем GRPC сервер
 	ctx, cancel := context.WithCancel(context.Background())
+	grpcServer := grpcserver.NewServerGRPC(conf, sendtocalculate.NewSendToCalculate(newQueue))
+	go grpcServer.Start()
+	slog.Info("Оркестратор запущен")
 	// Получаем функцию для остановки HTTP сервера
 	shutDown, err := server.Run(ctx, conf, newQueue, storage)
 	if err != nil {
@@ -50,9 +46,9 @@ func main() {
 	defer stop()
 	<-c
 	cancel()
-	tcpServer.Stop()
+	// Останавливаем GRPC сервер
+	grpcServer.Stop()
 	shutDown(ctx)
-	slog.Info("Сервер TCP/IP остановлен")
 	slog.Info("Оркестратор остановлен")
 	os.Exit(0)
 }
