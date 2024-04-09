@@ -7,6 +7,8 @@ import (
 
 	pb "github.com/adminsemy/yandexCalculator/Agent/grpc"
 	"github.com/adminsemy/yandexCalculator/Agent/intenal/config"
+	"github.com/adminsemy/yandexCalculator/Agent/intenal/entity/expression"
+	"github.com/adminsemy/yandexCalculator/Agent/intenal/task/calculate"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -18,34 +20,54 @@ type Expression interface {
 	Operation() string
 	Result() float64
 	Error() string
+	SetError(string)
+	SetResult(float64)
+	Duration() uint64
 }
 
 type ClientGRPC struct {
+	id         uint64
 	ctx        context.Context
 	conn       *grpc.ClientConn
 	conf       *config.Config
 	grpcClient pb.CalculatorClient
 }
 
-func New(ctx context.Context, conf *config.Config) *ClientGRPC {
+func New(ctx context.Context, conf *config.Config, id uint64) (*ClientGRPC, error) {
 	conn, err := grpc.NewClient(conf.GrpcHost+":"+conf.Port, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		slog.Error("не удалось подключиться к оркестратору", "ошибка", err)
-		return nil
+		return nil, err
 	}
 	return &ClientGRPC{
+		id:         id,
 		ctx:        ctx,
 		grpcClient: pb.NewCalculatorClient(conn),
 		conn:       conn,
 		conf:       conf,
-	}
+	}, nil
 }
 
 func (c *ClientGRPC) Close() {
 	c.conn.Close()
 }
 
-func (c *ClientGRPC) Calculate(expression Expression) {
+func (c *ClientGRPC) Start() error {
+	defer c.Close()
+	var res Expression
+	var err error
+	res, err = c.getExpression()
+	if err != nil {
+		slog.Error("ошибка получения выражения", "ошибка", err)
+		return err
+	}
+	res = calculate.CalculateGRPC(res)
+	c.calculate(res)
+
+	return nil
+}
+
+func (c *ClientGRPC) calculate(expression Expression) {
 	_, err := c.grpcClient.Calculate(c.ctx, &pb.Expression{
 		Expression: expression.Id(),
 		First:      expression.First(),
@@ -53,26 +75,20 @@ func (c *ClientGRPC) Calculate(expression Expression) {
 		Operation:  expression.Operation(),
 		Result:     expression.Result(),
 		Error:      expression.Error(),
+		Duration:   expression.Duration(),
 	})
 	if err != nil {
-		slog.Error("ошибка вычисления выражения", "ошибка", err, "выражение", expression.Id())
+		slog.Error("ошибка отправки выражения", "ошибка", err, "выражение", expression.Id())
 	}
 }
 
-func (c *ClientGRPC) GetExpression(id uint64) (Expression, error) {
+func (c *ClientGRPC) getExpression() (Expression, error) {
 	exp, err := c.grpcClient.GetExpression(c.ctx, &pb.Agent{
-		Name:    strconv.FormatUint(id, 10),
+		Name:    strconv.FormatUint(c.id, 10),
 		Address: c.conf.Host,
 	})
 	if err != nil {
 		return nil, err
 	}
-	return &Expression{
-		Id:        exp.Expression,
-		First:     exp.First,
-		Second:    exp.Second,
-		Operation: exp.Operation,
-		Result:    exp.Result,
-		Error:     exp.Error,
-	}, nil
+	return expression.New(exp.Expression, exp.First, exp.Second, exp.Operation, exp.Duration), nil
 }
