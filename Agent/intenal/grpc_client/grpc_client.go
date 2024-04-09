@@ -61,9 +61,11 @@ func (c *ClientGRPC) Start() error {
 		slog.Error("ошибка получения выражения", "ошибка", err)
 		return err
 	}
+	slog.Info("получено выражение", "id", res.Id(), "агент", c.id)
 	res = calculate.CalculateGRPC(res)
+	slog.Info("рассчитано выражение", "id", res.Id(), "результат", res.Result(), "агент", c.id)
 	c.calculate(res)
-
+	slog.Info("отправлено выражение", "id", res.Id(), "агент", c.id)
 	return nil
 }
 

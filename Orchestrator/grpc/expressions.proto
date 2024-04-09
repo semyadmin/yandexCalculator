@@ -9,6 +9,7 @@ message Expression {
     string operation = 4;
     double result = 5;
     string error = 6;
+    uint64 duration = 7;
 }
 
 message Agent {

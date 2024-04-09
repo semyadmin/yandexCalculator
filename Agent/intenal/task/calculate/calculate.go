@@ -32,16 +32,16 @@ func CalculateGRPC(exp Expression) Expression {
 	newExp := expression.New(id, first, second, operation, duration)
 	switch operation {
 	case "+":
-		time.Sleep(time.Duration(duration) * time.Second)
+		time.Sleep(time.Duration(int64(duration)) * time.Second)
 		newExp.SetResult(first + second)
 	case "-":
-		time.Sleep(time.Duration(duration) * time.Second)
+		time.Sleep(time.Duration(int64(duration)) * time.Second)
 		newExp.SetResult(first - second)
 	case "*":
-		time.Sleep(time.Duration(duration) * time.Second)
+		time.Sleep(time.Duration(int64(duration)) * time.Second)
 		newExp.SetResult(first * second)
 	case "/":
-		time.Sleep(time.Duration(duration) * time.Second)
+		time.Sleep(time.Duration(int64(duration)) * time.Second)
 		if second == 0 {
 			newExp.SetError("делить на ноль нельзя")
 		} else {

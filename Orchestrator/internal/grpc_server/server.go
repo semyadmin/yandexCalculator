@@ -21,6 +21,7 @@ type Expression interface {
 	Operation() string
 	Result(float64)
 	Error(string)
+	Duration() uint64
 }
 
 type Expressions interface {
@@ -80,6 +81,7 @@ func (s *ServerGRPC) GetExpression(ctx context.Context, agent *pb.Agent) (*pb.Ex
 		First:      expression.First(),
 		Second:     expression.Second(),
 		Operation:  expression.Operation(),
+		Duration:   expression.Duration(),
 	}, nil
 }
 

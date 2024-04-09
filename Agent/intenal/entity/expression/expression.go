@@ -16,6 +16,7 @@ func New(id string, first float64, second float64, operation string, duration ui
 		first:     first,
 		second:    second,
 		operation: operation,
+		duration:  duration,
 	}
 }
 

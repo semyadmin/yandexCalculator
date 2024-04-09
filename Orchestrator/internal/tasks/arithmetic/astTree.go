@@ -214,7 +214,19 @@ func getResult(a *ASTTree, ch chan result, parent *ASTTree, level string) {
 
 // Вычисляем операцию в зависимости от оператора
 func calculate(resX float64, operator string, resY float64, parent *ASTTree, level string) result {
-	send := entity.NewOperation(parent.expression.Expression+"-"+level, resX, resY, operator)
+	deadline := int64(0)
+	switch operator {
+	case "+":
+		deadline = parent.config.Plus
+	case "-":
+		deadline = parent.config.Minus
+	case "*":
+		deadline = parent.config.Multiply
+	case "/":
+		deadline = parent.config.Divide
+
+	}
+	send := entity.NewOperation(parent.expression.Expression+"-"+level, resX, resY, operator, uint64(deadline))
 	parent.queue.Enqueue(send)
 	res := result{}
 	resExp := <-send.ResultChan()

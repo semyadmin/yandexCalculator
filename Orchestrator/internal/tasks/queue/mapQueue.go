@@ -10,17 +10,29 @@ import (
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/entity"
 )
 
+type Expression interface {
+	Id() string
+	First() float64
+	Second() float64
+	Operation() string
+	Result(float64)
+	GetResult() float64
+	GetError() error
+	Error(string)
+	Duration() uint64
+}
+
 type MapQueue struct {
 	sync.RWMutex
 	mapQueue  map[string]Data
-	doneQueue map[string]entity.Operation
+	doneQueue map[string]Expression
 	Update    map[string]struct{}
 	queue     *LockFreeQueue
 	c         *config.Config
 }
 
 type Data struct {
-	Exp          entity.Operation
+	Exp          Expression
 	TimeDeadLine time.Time
 	inQueue      bool
 	result       float64
@@ -30,7 +42,7 @@ func NewMapQueue(queue *LockFreeQueue, c *config.Config) *MapQueue {
 	m := &MapQueue{
 		queue:     queue,
 		mapQueue:  make(map[string]Data),
-		doneQueue: make(map[string]entity.Operation),
+		doneQueue: make(map[string]Expression),
 		Update:    make(map[string]struct{}),
 		c:         c,
 	}
@@ -39,7 +51,7 @@ func NewMapQueue(queue *LockFreeQueue, c *config.Config) *MapQueue {
 }
 
 // Добавляем операцию в очередь
-func (m *MapQueue) Enqueue(exp entity.Operation) {
+func (m *MapQueue) Enqueue(exp Expression) {
 	m.RLock()
 	// Проверяем есть ли уже вычисленное выражение
 	if data, ok := m.doneQueue[exp.Id()]; ok {
@@ -63,24 +75,13 @@ func (m *MapQueue) Enqueue(exp entity.Operation) {
 }
 
 // Извлекаем операцию из очереди и записываем ее в кэш
-func (m *MapQueue) Dequeue() (entity.Operation, bool) {
+func (m *MapQueue) Dequeue() (Expression, bool) {
 	e, ok := (m.queue.Dequeue())
 	if !ok {
 		return nil, false
 	}
-	exp := e.(entity.Operation)
-	deadline := int64(0)
-	switch exp.Operation() {
-	case "+":
-		deadline = m.c.Plus
-	case "-":
-		deadline = m.c.Minus
-	case "*":
-		deadline = m.c.Multiply
-	case "/":
-		deadline = m.c.Divide
-
-	}
+	exp := e.(Expression)
+	deadline := exp.Duration()
 	m.Lock()
 	defer m.Unlock()
 	data := Data{
@@ -103,7 +104,7 @@ func (m *MapQueue) Done(id string, result float64, err string) {
 		if ok {
 			return
 		}
-		res := entity.NewOperation(id, 0, 0, "")
+		res := entity.NewOperation(id, 0, 0, "", 0)
 		res.Result(result)
 		res.Error(err)
 		m.doneQueue[id] = res

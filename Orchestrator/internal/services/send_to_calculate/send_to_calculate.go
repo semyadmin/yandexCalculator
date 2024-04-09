@@ -3,7 +3,6 @@ package sendtocalculate
 import (
 	"log/slog"
 
-	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/entity"
 	grpcserver "github.com/adminsemy/yandexCalculator/Orchestrator/internal/grpc_server"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/tasks/queue"
 )
@@ -20,7 +19,7 @@ func NewSendToCalculate(queue *queue.MapQueue) *SendToCalculate {
 
 func (s *SendToCalculate) Dequeue() (grpcserver.Expression, error) {
 	var bool bool
-	var exp entity.Operation
+	var exp grpcserver.Expression
 	for !bool {
 		exp, bool = s.queue.Dequeue()
 	}
