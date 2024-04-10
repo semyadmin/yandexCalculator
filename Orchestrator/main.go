@@ -4,9 +4,12 @@ import (
 	"errors"
 	"fmt"
 	"go/ast"
-	"go/parser"
 	"go/token"
+	"log"
 	"strconv"
+	"time"
+
+	"github.com/golang-jwt/jwt"
 )
 
 func operate(litX, litY *ast.BasicLit, op token.Token) (*ast.BasicLit, error) {
@@ -118,14 +121,37 @@ func prefixNotation(n ast.Node) string {
 }
 
 func main() {
-	exp := "-1+(1+2)*3"
-	tr, err := parser.ParseExpr(exp)
+	const hmacSampleSecret = "super_secret_signature"
+	now := time.Now()
+	token1 := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"name":    "user_name",
+		"nbf":     now.Unix(),
+		"exp":     now.Add(5 * time.Minute).Unix(),
+		"iat":     now.Unix(),
+		"my_test": "test",
+	})
+
+	tokenString, err := token1.SignedString([]byte(hmacSampleSecret))
 	if err != nil {
 		panic(err)
 	}
 
-	fmt.Println("-------------------")
-	fs := token.NewFileSet()
-	ast.Print(fs, tr)
-	fmt.Println("-------------------")
+	fmt.Println("token string:", tokenString)
+
+	tokenFromString, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			panic(fmt.Errorf("unexpected signing method: %v", token.Header["alg"]))
+		}
+
+		return []byte(hmacSampleSecret), nil
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if claims, ok := tokenFromString.Claims.(jwt.MapClaims); ok {
+		fmt.Println(claims)
+	} else {
+		panic(err)
+	}
 }

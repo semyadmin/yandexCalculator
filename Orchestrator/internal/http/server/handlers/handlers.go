@@ -28,7 +28,7 @@ func NewServeMux(config *config.Config,
 	// Установка продолжительности работы выражений
 	serveMux.HandleFunc("/duration", durationHandler(config))
 	// Получение выражения
-	serveMux.HandleFunc("/expression", expressionHandler(config, queue, storage))
+	serveMux.HandleFunc("/expression", authMiddleware(expressionHandler(config, queue, storage)))
 	// Отдаем все сохраненные выражения
 	serveMux.HandleFunc("/getexpressions", getExpressionsHandler(storage))
 	// Получение выражения по ID
@@ -38,6 +38,13 @@ func NewServeMux(config *config.Config,
 	// Регистрируем обработчики WebSocket для выражений
 	serveMux.HandleFunc("/ws", serveWS(config))
 	return serveMux, nil
+}
+
+func authMiddleware(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		slog.Info("Авторизация прошла успешно")
+		next.ServeHTTP(w, r)
+	}
 }
 
 // Выполняем все middleware на все запросы
@@ -51,7 +58,7 @@ func Decorate(next http.Handler, middleware ...func(http.Handler) http.Handler) 
 }
 
 // Возвращаем данные по ID
-func getById(storage *memory.Storage) func(w http.ResponseWriter, r *http.Request) {
+func getById(storage *memory.Storage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		patch := r.URL.Path
 		data, err := expression.GetById(storage, patch[len("/id/"):])
@@ -64,7 +71,7 @@ func getById(storage *memory.Storage) func(w http.ResponseWriter, r *http.Reques
 }
 
 // Возвращаем данные по воркерам
-func getWorkers(conf *config.Config, q *queue.MapQueue) func(w http.ResponseWriter, r *http.Request) {
+func getWorkers(conf *config.Config, q *queue.MapQueue) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodGet {
 			newWorkers := config.Workers{
@@ -89,7 +96,7 @@ func getWorkers(conf *config.Config, q *queue.MapQueue) func(w http.ResponseWrit
 func expressionHandler(config *config.Config,
 	queue *queue.MapQueue,
 	storage *memory.Storage,
-) func(w http.ResponseWriter, r *http.Request) {
+) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodPost {
 			type Expression interface {
@@ -121,7 +128,7 @@ func expressionHandler(config *config.Config,
 	}
 }
 
-func getExpressionsHandler(storage *memory.Storage) func(w http.ResponseWriter, r *http.Request) {
+func getExpressionsHandler(storage *memory.Storage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodGet {
 			data, err := json.Marshal(storage.GetAll())
@@ -136,7 +143,7 @@ func getExpressionsHandler(storage *memory.Storage) func(w http.ResponseWriter, 
 }
 
 // Обрабатываем входящее время и возвращаем
-func durationHandler(conf *config.Config) func(w http.ResponseWriter, r *http.Request) {
+func durationHandler(conf *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Обрабатываем входящее время
 		if r.Method == http.MethodPost {
