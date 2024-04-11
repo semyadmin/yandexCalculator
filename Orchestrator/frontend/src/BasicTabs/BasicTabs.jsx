@@ -6,8 +6,8 @@ import CustomTabPanel from '../CustomTabPanel/CustomTabPanel';
 import TwoTabPanel from '../TwoTabPanel/TwoTabPanel';
 import ThreeTabPanel from '../ThreeTabPanel/ThreeTabPanel';
 import Grid from '@mui/material/Grid';
-import Button from '@mui/material/Button';
 import Tooltip from '@mui/material/Tooltip';
+import Authorization from '../Authorization/Authorization';
   
   export default function BasicTabs({client}) {
     const [value, setValue] = React.useState(0);
@@ -22,7 +22,7 @@ import Tooltip from '@mui/material/Tooltip';
           <Grid item container xs={12} alignItems="flex-end" direction="column">
             <Grid item>
               <Tooltip title="Add" placement="right-start">
-                <Button>Выход</Button>
+                <Authorization client={client} />
               </Tooltip>
             </Grid>
           </Grid>
