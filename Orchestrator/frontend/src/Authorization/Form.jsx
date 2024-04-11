@@ -13,7 +13,7 @@ import { createTheme, ThemeProvider } from '@mui/material/styles';
 const defaultTheme = createTheme();
 
 export default function Form(props) {
-    const { onClose, client } = props;
+    const { onClose, client, setUser } = props;
     const [errorLogin, setErrorLogin] = React.useState(true);
     const [login, setLogin] = React.useState("");
     const [password, setPassword] = React.useState("");
@@ -26,8 +26,25 @@ export default function Form(props) {
     }
     const handleSubmit = (event) => {
         event.preventDefault();
-        console.log(login, password)
+        setUser(login);
         onClose();
+        return
+        client.post('/api/v1/register', { login: login, password: password }, {
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        }).then((response) => {
+            if (response.data != null) {
+                localStorage.setItem('token', response.data.token);
+                setUser(login);
+                setLogin("");
+                setPassword("");
+                onClose();
+              }
+        })
+        .catch((error) => {
+            setErrorLogin(true);
+        });
     };
     const handleOnFocus = () => {
         setErrorLogin(false)
