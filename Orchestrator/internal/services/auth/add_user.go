@@ -1,7 +1,7 @@
 package auth
 
 import (
-	"crypto/sha1"
+	"crypto/sha256"
 	"encoding/json"
 	"errors"
 
@@ -11,7 +11,6 @@ import (
 )
 
 const (
-	errUserNotExists   = "Пользователь не существует"
 	errLoginOrPassword = "Неверные логин или пароль"
 )
 const saltPassword = "s3cr3t"
@@ -31,10 +30,14 @@ func User(userStorage *memory.UserStorage, data []byte) (string, error) {
 		userStorage.Add(user)
 		return jwttoken.GenerateToken(user.Login)
 	}
+	if foundUser.Password != hashPassword(user.Password) {
+		return "", errors.New(errLoginOrPassword)
+	}
 	return jwttoken.GenerateToken(foundUser.Login)
 }
 
 func hashPassword(password string) string {
-	res := sha1.New().Sum([]byte(password + saltPassword))
-	return string(res)
+	res := sha256.New()
+	res.Write([]byte(password + saltPassword))
+	return string(res.Sum(nil))
 }

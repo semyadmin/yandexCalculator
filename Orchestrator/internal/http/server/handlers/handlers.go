@@ -68,6 +68,7 @@ func authMiddleware(next http.HandlerFunc) http.HandlerFunc {
 		auth := r.Header.Get("Authorization")
 		token := strings.Split(auth, " ")
 		if len(token) != 2 || token[0] != "Bearer" {
+			slog.Error("Неверные данные для аутентификации", "Токен:", token)
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
@@ -138,7 +139,6 @@ func expressionHandler(config *config.Config,
 			slog.Info("Полученное выражение от пользователя:", "выражение:", string(data))
 			auth := r.Header.Get("Authorization")
 			token := strings.Split(auth, " ")
-
 			answer, err := newexpression.NewExpression(config, storage, queue, string(data), token[1])
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)

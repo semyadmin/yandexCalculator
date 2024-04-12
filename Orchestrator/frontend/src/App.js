@@ -8,6 +8,9 @@ const client = axios.create({
 })
 
 function App() {
+  React.useEffect(() => {
+    sessionStorage.clear();    
+  },[])
 
   return (
     <div className="App">

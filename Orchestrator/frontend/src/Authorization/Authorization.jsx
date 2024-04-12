@@ -8,11 +8,11 @@ import Toolbar from '@mui/material/Toolbar';
 import Form from './Form';
 
 function SimpleDialog(props) {
-  const { onClose, open, client, setUser  } = props;
+  const { onClose, open, client, setUser, setIsLogin } = props;
 
   return (
     <Dialog open={open}>
-          <Form onClose={onClose} client={client} setUser={setUser} />
+          <Form onClose={onClose} client={client} setUser={setUser} setIsLogin={setIsLogin} />
     </Dialog>
   );
 }
@@ -23,7 +23,7 @@ SimpleDialog.propTypes = {
 };
 
 export default function Authorization(props) {
-  const {client} = props
+  const {client, setIsLogin} = props
   const [open, setOpen] = React.useState(false);
   const [user, setUser] = React.useState("");
   const handleClickOpen = () => {
@@ -32,7 +32,8 @@ export default function Authorization(props) {
 
   const handleClickExit = () => {
     setUser("");
-
+    sessionStorage.clear();
+    setIsLogin(false);
   };
 
   const handleClose = () => {
@@ -62,6 +63,7 @@ export default function Authorization(props) {
           onClose={handleClose}
           client={client}
           setUser={setUser}
+          setIsLogin={setIsLogin}
         />
       </Toolbar>   
     </Container>

@@ -3,6 +3,7 @@ package expression
 import (
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"time"
 
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/config"
@@ -28,6 +29,7 @@ func NewExpression(conf *config.Config,
 ) ([]byte, error) {
 	user, err := jwttoken.ParseToken(token)
 	if err != nil {
+		slog.Error("Невозможно распарсить токен:", "ОШИБКА:", err)
 		return nil, err
 	}
 	exp, err := storage.GeByExpression(expression, user)

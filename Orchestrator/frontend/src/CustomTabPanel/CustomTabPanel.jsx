@@ -12,50 +12,57 @@ import BasicTable from './BasicTable/BasicTable';
 
 
 export default function CustomTabPanel(props) {
+  const { value, index, client, isLogin } = props;
   const [openSuccess, setOpenSuccess] = React.useState(false);
   const [textSnackbarSuccess, setTextSnackbarSuccess] = React.useState('')
   const [textSnackbarError, setTextSnackbarError] = React.useState('')
   const [openError, setOpenError] = React.useState(false);
-  const { value, index, client} = props;
   const [textValue, setTextValue] = React.useState('');
   /* const [idValue, setIdValue] = React.useState(''); */
   const [answer, setAnswer] = React.useState([]);
-  const token = localStorage.getItem('token');
-  const address = "ws://" + window.location.host + "/ws" + "?token=" + token
+  
+  const address = "ws://" + window.location.host + "/ws" + "?token=" + sessionStorage.getItem('token');
   const { sendJsonMessage, lastJsonMessage, readyState } = useWebSocket(
     address,
     {
       share: false,
       shouldReconnect: () => true,
+      reconnectAttempts: 5,
     },
    // Boolean(token)
   )
   React.useEffect(() => {
-    if (token === null) {
-      return
+    if (isLogin) {
+      const token = sessionStorage.getItem('token');
+      if (token === null) {
+        return
+      }
+      client
+        .get('getexpressions', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        },)
+        .then((response) => {
+          if (response.data != null) {
+            response.data.forEach(el => {
+              const res = {
+                id: el.ID,
+                expression: el.Expression,
+                start: el.Start,
+                end: el.End,
+                status: el.Status
+              }
+              answer.push(res)
+            })
+            setAnswer([...answer])
+          }
+        })
+      
+    } else {
+      setAnswer([])
     }
-    client
-      .get('getexpressions', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      },)
-      .then((response) => {
-        if (response.data != null) {
-          response.data.forEach(el => {
-            const res = {
-              id: el.ID,
-              expression: el.Expression,
-              start: el.Start,
-              end: el.End,
-              status: el.Status
-            }
-            answer.push(res)
-          })
-          setAnswer([...answer])
-        }
-      })
-  },)
+  },[isLogin])
 
   // Run when the connection state (readyState) changes
   React.useEffect(() => {
@@ -68,7 +75,7 @@ export default function CustomTabPanel(props) {
         },
       })
     }
-  }, [readyState, sendJsonMessage])
+  }, [readyState])
 
   // Run when a new WebSocket message is received (lastJsonMessage)
   React.useEffect(() => {
@@ -94,7 +101,7 @@ export default function CustomTabPanel(props) {
     setAnswer([...answer])
     console.log("answer ", answer)
   }
-  }, [lastJsonMessage, answer])
+  }, [lastJsonMessage])
   const onChangeText = (event) => {
     setTextValue(event.target.value);
   }
@@ -104,7 +111,7 @@ export default function CustomTabPanel(props) {
   } */
   
   const sendTextValue = () => {
-    const token = localStorage.getItem('token');
+    const token = sessionStorage.getItem('token');
     if (token === null) {
       return
     }
@@ -114,6 +121,8 @@ export default function CustomTabPanel(props) {
             'Content-Type' : 'text/plain',
             'Authorization': `Bearer ${token}`,
         }
+      }).then(() => {
+        setTextValue("")
       })
   }
   const handleCloseSuccess = (event, reason) => {

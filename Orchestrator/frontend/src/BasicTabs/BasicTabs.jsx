@@ -11,6 +11,7 @@ import Authorization from '../Authorization/Authorization';
   
   export default function BasicTabs({client}) {
     const [value, setValue] = React.useState(0);
+    const [isLogin, setIsLogin] = React.useState(false);
   
     const handleChange = (event, newValue) => {
       setValue(newValue);
@@ -22,7 +23,7 @@ import Authorization from '../Authorization/Authorization';
           <Grid item container xs={12} alignItems="flex-end" direction="column">
             <Grid item>
               <Tooltip title="Add" placement="right-start">
-                <Authorization client={client}/>                
+                <Authorization client={client} setIsLogin={setIsLogin}/>                
               </Tooltip>
             </Grid>
           </Grid>
@@ -34,7 +35,7 @@ import Authorization from '../Authorization/Authorization';
             <Tab label="Мониторинг рабочих агентов"  />
           </Tabs>
         </Box>
-        <CustomTabPanel value={value} index={0} client={client}/>
+        <CustomTabPanel value={value} index={0} client={client} isLogin={isLogin}/>
         <TwoTabPanel value={value} index={1} client={client} />
         <ThreeTabPanel value={value} index={2} client={client} />
       </Box>

@@ -13,8 +13,9 @@ import { createTheme, ThemeProvider } from '@mui/material/styles';
 const defaultTheme = createTheme();
 
 export default function Form(props) {
-    const { onClose, client, setUser } = props;
+    const { onClose, client, setUser, setIsLogin } = props;
     const [errorLogin, setErrorLogin] = React.useState(false);
+    const [textErrorLogin, setTextErrorLogin] = React.useState("");
     const [login, setLogin] = React.useState("");
     const [password, setPassword] = React.useState("");
     const handleChangeLogin = (event) => {
@@ -32,16 +33,20 @@ export default function Form(props) {
             }
         }).then((response) => {
             if (response.data != null) {
-                localStorage.setItem('token', response.data.token);
+                sessionStorage.setItem('token', response.data);
                 setUser(login);
                 setLogin("");
                 setPassword("");
+                setErrorLogin(false);
+                setTextErrorLogin("");
+                setIsLogin(true);
                 onClose();
               }
         })
         .catch((error) => {
             console.log(error)
             setErrorLogin(true);
+            setTextErrorLogin("Неверное имя пользователя или пароль");
         });
     };
     const handleOnFocus = () => {
@@ -68,7 +73,7 @@ export default function Form(props) {
           </Typography>
           <Box component="form" onSubmit={handleSubmit} noValidate sx={{ mt: 1 }}>
             <TextField
-                {...(errorLogin ? { error: true, helperText: 'Неверное имя пользователя или пароль' } : {})}
+                {...(errorLogin ? { error: true, helperText: textErrorLogin } : {})}
                 onFocus={handleOnFocus}
               margin="normal"
               required

@@ -23,6 +23,7 @@ type Message struct {
 }
 
 type WebSocketClient struct {
+	User       string
 	connection *websocket.Conn
 	readChan   chan []byte
 	WriteChan  chan []byte
@@ -30,8 +31,9 @@ type WebSocketClient struct {
 	Type       string
 }
 
-func NewWebSocketClient(connection *websocket.Conn, t string) *WebSocketClient {
+func NewWebSocketClient(connection *websocket.Conn, t string, user string) *WebSocketClient {
 	w := &WebSocketClient{
+		User:       user,
 		connection: connection,
 		readChan:   make(chan []byte),
 		WriteChan:  make(chan []byte),
