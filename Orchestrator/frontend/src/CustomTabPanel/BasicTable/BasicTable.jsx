@@ -36,9 +36,9 @@ export default function BasicTable(props) {
             >
               <TableCell >
                 
-                  {row.status == 'progress' 
+                  {row.status === 'progress' 
                   ? <Tooltip title="Выражение высчитывается"><AutorenewIcon/></Tooltip>
-                  : row.status == 'completed' ? <Tooltip title="Выражение посчитано"><CheckIcon/></Tooltip> 
+                  : row.status === 'completed' ? <Tooltip title="Выражение посчитано"><CheckIcon/></Tooltip> 
                   : <Tooltip title="Выражение посчитано с ошибкой"><CloseIcon/></Tooltip> 
                   }
                 

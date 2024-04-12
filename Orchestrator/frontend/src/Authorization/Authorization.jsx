@@ -25,7 +25,7 @@ SimpleDialog.propTypes = {
 export default function Authorization(props) {
   const {client} = props
   const [open, setOpen] = React.useState(false);
-  const [user, setUser] = React.useState({});
+  const [user, setUser] = React.useState("");
   const handleClickOpen = () => {
     setOpen(true);
   };

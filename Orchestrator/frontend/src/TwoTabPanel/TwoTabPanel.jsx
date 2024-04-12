@@ -43,7 +43,7 @@ export default function TwoTabPanel(props) {
         })
     }
     getOperators()    
-  }, [])
+  }, )
   const sendOperators = () => {
     client
       .post('duration', {

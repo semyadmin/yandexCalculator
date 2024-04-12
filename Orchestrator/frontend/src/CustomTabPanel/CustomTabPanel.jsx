@@ -20,17 +20,26 @@ export default function CustomTabPanel(props) {
   const [textValue, setTextValue] = React.useState('');
   /* const [idValue, setIdValue] = React.useState(''); */
   const [answer, setAnswer] = React.useState([]);
-  const address = "ws://" + window.location.host + "/ws"
+  const token = localStorage.getItem('token');
+  const address = "ws://" + window.location.host + "/ws" + "?token=" + token
   const { sendJsonMessage, lastJsonMessage, readyState } = useWebSocket(
     address,
     {
       share: false,
       shouldReconnect: () => true,
     },
+   // Boolean(token)
   )
   React.useEffect(() => {
+    if (token === null) {
+      return
+    }
     client
-      .get('getexpressions')
+      .get('getexpressions', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      },)
       .then((response) => {
         if (response.data != null) {
           response.data.forEach(el => {
@@ -46,20 +55,20 @@ export default function CustomTabPanel(props) {
           setAnswer([...answer])
         }
       })
-  },[])
+  },)
 
   // Run when the connection state (readyState) changes
   React.useEffect(() => {
     console.log("Connection state changed")
     if (readyState === ReadyState.OPEN) {
-      sendJsonMessage({
+        sendJsonMessage({
         event: "subscribe",
         data: {
           channel: "general-chatroom",
         },
       })
     }
-  }, [readyState])
+  }, [readyState, sendJsonMessage])
 
   // Run when a new WebSocket message is received (lastJsonMessage)
   React.useEffect(() => {
@@ -85,7 +94,7 @@ export default function CustomTabPanel(props) {
     setAnswer([...answer])
     console.log("answer ", answer)
   }
-  }, [lastJsonMessage])
+  }, [lastJsonMessage, answer])
   const onChangeText = (event) => {
     setTextValue(event.target.value);
   }
@@ -95,10 +104,15 @@ export default function CustomTabPanel(props) {
   } */
   
   const sendTextValue = () => {
+    const token = localStorage.getItem('token');
+    if (token === null) {
+      return
+    }
     client
       .post('expression', textValue, {
         headers: { 
-            'Content-Type' : 'text/plain' 
+            'Content-Type' : 'text/plain',
+            'Authorization': `Bearer ${token}`,
         }
       })
   }

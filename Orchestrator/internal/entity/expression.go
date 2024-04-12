@@ -15,14 +15,25 @@ type Expression struct {
 	Result               float64
 	IsCalc               bool
 	Err                  error
+	User                 string
 }
 
-func NewExpression(exp string, calcExp string, validator func(string) bool) *Expression {
+func NewExpression(exp string, calcExp string, validator func(string) bool, user string) *Expression {
 	exp = strings.ReplaceAll(exp, " ", "")
 	if !validator(exp) {
-		return &Expression{Expression: exp, Err: errors.New("invalid expression"), Start: time.Now()}
+		return &Expression{
+			Expression: exp,
+			Err:        errors.New("invalid expression"),
+			Start:      time.Now(),
+			User:       user,
+		}
 	}
-	return &Expression{Expression: exp, CalculatedExpression: calcExp, Start: time.Now()}
+	return &Expression{
+		Expression:           exp,
+		CalculatedExpression: calcExp,
+		Start:                time.Now(),
+		User:                 user,
+	}
 }
 
 func (e *Expression) SetResult(r float64, err error) {

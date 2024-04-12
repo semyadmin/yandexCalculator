@@ -16,9 +16,10 @@ func Run(ctx context.Context,
 	config *config.Config,
 	queue *queue.MapQueue,
 	storage *memory.Storage,
+	userStorage *memory.UserStorage,
 ) (func(context.Context) error, error) {
 	// Инициализируем маршрутизатор
-	serveMux, err := handlers.NewServeMux(config, queue, storage)
+	serveMux, err := handlers.NewServeMux(config, queue, storage, userStorage)
 	if err != nil {
 		return nil, err
 	}

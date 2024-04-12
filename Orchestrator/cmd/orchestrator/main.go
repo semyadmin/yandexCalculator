@@ -23,6 +23,8 @@ func main() {
 	postgresql_config.Load(conf)
 	// Создаем сторадж для хранения выражений в памяти
 	storage := memory.New(conf)
+	// Создаем сторадж для хранения пользователей в памяти
+	userStorage := memory.NewUserStorage(conf)
 	// Создаем новую очередь
 	newQueue := queue.NewMapQueue(queue.NewLockFreeQueue(), conf)
 	// Загружаем все выражения из базы
@@ -35,7 +37,7 @@ func main() {
 	go grpcServer.Start()
 	slog.Info("Оркестратор запущен")
 	// Получаем функцию для остановки HTTP сервера
-	shutDown, err := server.Run(ctx, conf, newQueue, storage)
+	shutDown, err := server.Run(ctx, conf, newQueue, storage, userStorage)
 	if err != nil {
 		slog.Error("Ошибка запуска сервера:", "ошибка:", err)
 		os.Exit(1)

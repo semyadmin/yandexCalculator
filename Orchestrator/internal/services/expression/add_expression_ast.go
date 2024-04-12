@@ -7,6 +7,7 @@ import (
 
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/config"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/entity"
+	jwttoken "github.com/adminsemy/yandexCalculator/Orchestrator/internal/services/jwt_token"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/storage/memory"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/tasks/arithmetic"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/tasks/queue"
@@ -19,10 +20,19 @@ type NewExpressionAst struct {
 	queue   *queue.MapQueue
 }
 
-func NewExpression(conf *config.Config, storage *memory.Storage, queue *queue.MapQueue, expression string) ([]byte, error) {
-	exp, err := storage.GeByExpression(expression)
+func NewExpression(conf *config.Config,
+	storage *memory.Storage,
+	queue *queue.MapQueue,
+	expression string,
+	token string,
+) ([]byte, error) {
+	user, err := jwttoken.ParseToken(token)
+	if err != nil {
+		return nil, err
+	}
+	exp, err := storage.GeByExpression(expression, user)
 	if errors.Is(err, memory.ErrExpressionNotExists) {
-		exp = entity.NewExpression(expression, "", validator.Validator)
+		exp = entity.NewExpression(expression, "", validator.Validator, user)
 		storage.Set(exp)
 		_, err := arithmetic.NewASTTree(exp, conf, queue)
 		if exp.Err == nil {

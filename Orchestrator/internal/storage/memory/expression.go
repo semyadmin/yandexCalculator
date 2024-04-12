@@ -67,28 +67,28 @@ func (s *Storage) SetFromDb(data *entity.Expression, status string) {
 }
 
 // Возвращаем выражение из памяти по строке выражения
-func (s *Storage) GeByExpression(expression string) (*entity.Expression, error) {
+func (s *Storage) GeByExpression(expression string, user string) (*entity.Expression, error) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
-	if data, ok := s.data[expression]; ok {
+	if data, ok := s.data[expression+"-"+user]; ok {
 		return data.Value.(*entity.Expression), nil
 	}
 	return nil, ErrExpressionNotExists
 }
 
 // Ищем в памяти выражение по ID
-func (s *Storage) GeById(id uint64) (*entity.Expression, error) {
+func (s *Storage) GeById(id uint64, user string) (*entity.Expression, error) {
 	s.mutex.Lock()
 	data, ok := s.exists[id]
 	s.mutex.Unlock()
 	if ok {
-		return s.GeByExpression(data)
+		return s.GeByExpression(data, user)
 	}
 	return nil, ErrExpressionNotExists
 }
 
-func (s *Storage) GetAll() []*entity.Expression {
+func (s *Storage) GetAll(user string) []*entity.Expression {
 	var data []*entity.Expression
 	for e := s.queue.Front(); e != nil; e = e.Next() {
 		element := e.Value.(*entity.Expression)

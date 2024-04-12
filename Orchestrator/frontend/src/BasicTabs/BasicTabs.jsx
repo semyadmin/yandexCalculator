@@ -22,7 +22,7 @@ import Authorization from '../Authorization/Authorization';
           <Grid item container xs={12} alignItems="flex-end" direction="column">
             <Grid item>
               <Tooltip title="Add" placement="right-start">
-                <Authorization client={client} />
+                <Authorization client={client}/>                
               </Tooltip>
             </Grid>
           </Grid>

@@ -14,7 +14,7 @@ const defaultTheme = createTheme();
 
 export default function Form(props) {
     const { onClose, client, setUser } = props;
-    const [errorLogin, setErrorLogin] = React.useState(true);
+    const [errorLogin, setErrorLogin] = React.useState(false);
     const [login, setLogin] = React.useState("");
     const [password, setPassword] = React.useState("");
     const handleChangeLogin = (event) => {
@@ -26,10 +26,7 @@ export default function Form(props) {
     }
     const handleSubmit = (event) => {
         event.preventDefault();
-        setUser(login);
-        onClose();
-        return
-        client.post('/api/v1/register', { login: login, password: password }, {
+        client.post('/api/v1/auth', { login: login, password: password }, {
             headers: {
                 'Content-Type': 'application/json'
             }
@@ -43,6 +40,7 @@ export default function Form(props) {
               }
         })
         .catch((error) => {
+            console.log(error)
             setErrorLogin(true);
         });
     };
