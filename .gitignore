@@ -21,3 +21,4 @@
 go.work
 Distrib/
 .vscode
+/db_data

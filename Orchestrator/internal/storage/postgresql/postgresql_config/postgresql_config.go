@@ -1,13 +1,9 @@
 package postgresql_config
 
 import (
-	"database/sql"
-	"errors"
-	"fmt"
 	"log/slog"
 
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/config"
-	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/storage/postgresql"
 )
 
 const (
@@ -29,7 +25,7 @@ type Conf struct {
 
 // Add — добавляет запись в базу данных
 func Save(conf *config.Config) {
-	go func() {
+	/* go func() {
 		db := postgresql.DbConnect(conf)
 		defer db.Close()
 		query := fmt.Sprintf(`
@@ -56,12 +52,12 @@ func Save(conf *config.Config) {
 		}
 
 		slog.Info("Обновлена запись конфигурации", "конфиг:", newConf)
-	}()
+	}() */
 }
 
 // Ищем созданную конфигурацию в базе данных. Ищем по ID = 1
 func GetByIdOne(conf *config.Config) (Conf, error) {
-	db := postgresql.DbConnect(conf)
+	/* db := postgresql.DbConnect(conf)
 	defer db.Close()
 	query := fmt.Sprintf("SELECT %s, %s, %s, %s, %s FROM %s WHERE id = $1", plus, minus, multiply, divide, maxid, tableName)
 	prepare, err := db.Prepare(query)
@@ -85,12 +81,13 @@ func GetByIdOne(conf *config.Config) (Conf, error) {
 	if err != nil {
 		return Conf{}, err
 	}
-	return result, nil
+	*/
+	return Conf{}, nil
 }
 
 // Если нет конфигурации с ID = 1, то создаем
 func create(conf *config.Config) {
-	db := postgresql.DbConnect(conf)
+	/* db := postgresql.DbConnect(conf)
 	defer db.Close()
 	query := fmt.Sprintf(`
 			INSERT INTO %s (%s, %s, %s, %s, %s)
@@ -101,7 +98,7 @@ func create(conf *config.Config) {
 		return
 	}
 	defer sqlPrepare.Close()
-	sqlPrepare.Query(0, 0, 0, 0, 0)
+	sqlPrepare.Query(0, 0, 0, 0, 0) */
 }
 
 // Инициализируем конфиг

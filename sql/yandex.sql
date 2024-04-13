@@ -3,7 +3,7 @@ CREATE TABLE IF NOT EXISTS Expressions (
     id SERIAL,
     baseID BIGINT,
     Expression text NOT NULL,
-    User text NOT NULL,
+    Login text NOT NULL,
     Value text,
     Err boolean NOT NULL DEFAULT false,
     CurrentResult text

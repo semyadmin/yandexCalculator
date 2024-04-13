@@ -2,12 +2,14 @@ package config
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"os"
 	"strconv"
 	"sync"
 	"sync/atomic"
 
+	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/storage/postgresql"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/web_socket/manager"
 	"github.com/joho/godotenv"
 )
@@ -20,11 +22,7 @@ type Config struct {
 	Host        string
 	HttpPort    string
 	TCPPort     string
-	Db          string
-	DbName      string
-	DbPort      string
-	DbUser      string
-	DbPass      string
+	Db          *sql.DB
 	Plus        int64
 	Minus       int64
 	Multiply    int64
@@ -89,11 +87,7 @@ func New() *Config {
 		Host:      host,
 		HttpPort:  httpPort,
 		TCPPort:   tcpPort,
-		Db:        db,
-		DbName:    dbName,
-		DbPort:    dbPort,
-		DbUser:    dbUser,
-		DbPass:    dbPassword,
+		Db:        postgresql.DbConnect(db, dbPort, dbUser, dbPassword, dbName),
 		WSmanager: manager.NewManager(context.Background()),
 	}
 }

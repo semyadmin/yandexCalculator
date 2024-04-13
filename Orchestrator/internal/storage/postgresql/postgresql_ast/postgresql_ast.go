@@ -2,13 +2,13 @@ package postgresql_ast
 
 import (
 	"database/sql"
-	"errors"
 	"fmt"
 	"log/slog"
+	"time"
 
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/config"
+	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/entity"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/storage/memory"
-	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/storage/postgresql"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/tasks/arithmetic"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/tasks/queue"
 )
@@ -20,36 +20,35 @@ const (
 	value         = "value"
 	errColumn     = "err"
 	currentResult = "currentresult"
+	user          = "login"
 )
 
 // Add — добавляет запись в базу данных
-func Add(model *arithmetic.ASTTree, conf *config.Config) {
+func Add(exp *entity.Expression, ast *arithmetic.ASTTree, conn *sql.DB) {
 	go func() {
-		/* db := postgresql.DbConnect(conf)
-		defer db.Close()
-		ok, err := GetByExpression(model.Expression, conf)
-		if err != nil {
-			return
-		}
-		if ok {
-			return
+		var err error
+		for {
+			err = conn.Ping()
+			if err == nil {
+				break
+			}
+			time.Sleep(5 * time.Second)
 		}
 		query := fmt.Sprintf(`
-			INSERT INTO %s (%s, %s, %s, %s, %s)
-			VALUES ($1, $2, $3, $4, $5)`,
-			tableName, baseId, expression, value, errColumn, currentResult)
-		sqlPrepare, err := db.Prepare(query)
+			INSERT INTO %s (%s, %s, %s, %s, %s, %s)
+			VALUES ($1, $2, $3, $4, $5, $6)`,
+			tableName, baseId, expression, user, value, errColumn, currentResult)
+		sqlPrepare, err := conn.Prepare(query)
 		defer sqlPrepare.Close()
 		if err != nil {
 			return
 		}
-		model.Lock()
-		astBaseID := model.ID
-		astExp := model.Expression
-		astValue := model.Value
-		astErr := model.Err
-		astCurrentRes := arithmetic.PrintExpression(model)
-		model.Unlock()
+		astBaseID := exp.ID
+		astExp := exp.Expression
+		astUser := exp.User
+		astValue := exp.Result
+		astErr := exp.Err
+		astCurrentRes := ast.PrintExpression()
 
 		currentErr := false
 		if astErr != nil {
@@ -58,6 +57,7 @@ func Add(model *arithmetic.ASTTree, conf *config.Config) {
 		_, err = sqlPrepare.Query(
 			astBaseID,
 			astExp,
+			astUser,
 			astValue,
 			currentErr,
 			astCurrentRes,
@@ -66,13 +66,13 @@ func Add(model *arithmetic.ASTTree, conf *config.Config) {
 			slog.Info("Не удалось добавить запись в базу данных", "ошибка:", err)
 			return
 		}
-		slog.Info("Добавление записи в базу данных", "выражение:", model.Expression) */
+		slog.Info("Добавлено выражение в базу данных", "выражение:", exp.Expression)
 	}()
 }
 
 // Проверяем наличие выражения по строке выражения
 func GetByExpression(exp string, conf *config.Config) (bool, error) {
-	db := postgresql.DbConnect(conf)
+	/* db := postgresql.DbConnect(conf)
 	defer db.Close()
 	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s = $1 LIMIT 1", expression, tableName, expression)
 	sqlPrepare, err := db.Prepare(query)
@@ -89,6 +89,7 @@ func GetByExpression(exp string, conf *config.Config) (bool, error) {
 		slog.Info("Не удалось отсканировать запись из базы данных", "ОШИБКА:", err)
 		return false, err
 	}
+	*/
 	return true, nil
 }
 

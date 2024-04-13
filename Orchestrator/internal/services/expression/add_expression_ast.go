@@ -10,6 +10,7 @@ import (
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/entity"
 	jwttoken "github.com/adminsemy/yandexCalculator/Orchestrator/internal/services/jwt_token"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/storage/memory"
+	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/storage/postgresql/postgresql_ast"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/tasks/arithmetic"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/tasks/queue"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/validator"
@@ -36,10 +37,11 @@ func NewExpression(conf *config.Config,
 	if errors.Is(err, memory.ErrExpressionNotExists) {
 		exp = entity.NewExpression(expression, "", validator.Validator, user)
 		storage.Set(exp)
-		_, err := arithmetic.NewASTTree(exp, conf, queue)
+		ast, err := arithmetic.NewASTTree(exp, conf, queue)
 		if exp.Err == nil {
 			exp.Duration = duration(exp.Expression, conf)
 		}
+		postgresql_ast.Add(exp, ast, conf.Db)
 		if err != nil {
 			resp := entity.NewResponseExpression(exp.ID, exp.Expression, time.Now(), 0, false, 0, err)
 			data, e := json.Marshal(resp)

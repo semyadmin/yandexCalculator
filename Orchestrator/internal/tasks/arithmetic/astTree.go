@@ -151,15 +151,21 @@ func (a *ASTTree) calc() {
 
 // Печатаем полученное выражение, вычисленное в процессе, что бы
 // не считать все выражение заново
-func PrintExpression(a *ASTTree) string {
+func (a *ASTTree) PrintExpression() string {
+	a.Lock()
+	defer a.Unlock()
+	return stringASTTree(a)
+}
+
+func stringASTTree(a *ASTTree) string {
 	if a.IsCalc {
 		return strconv.FormatFloat(a.Value, 'f', -1, 64)
 	}
 	if a.IsParent {
-		return "(" + PrintExpression(a.X) + ")"
+		return "(" + stringASTTree(a.X) + ")"
 	}
 
-	return PrintExpression(a.X) + a.Operator + PrintExpression(a.Y)
+	return stringASTTree(a.X) + a.Operator + stringASTTree(a.Y)
 }
 
 // Вычисляем каждую операцию. Если уже вычислено
