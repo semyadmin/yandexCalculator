@@ -13,7 +13,7 @@ import { createTheme, ThemeProvider } from '@mui/material/styles';
 const defaultTheme = createTheme();
 
 export default function Form(props) {
-    const { onClose, client, setUser, setIsLogin } = props;
+    const { client, setUser, setIsLogin } = props;
     const [errorLogin, setErrorLogin] = React.useState(false);
     const [textErrorLogin, setTextErrorLogin] = React.useState("");
     const [login, setLogin] = React.useState("");
@@ -40,7 +40,6 @@ export default function Form(props) {
                 setErrorLogin(false);
                 setTextErrorLogin("");
                 setIsLogin(true);
-                onClose();
               }
         })
         .catch((error) => {

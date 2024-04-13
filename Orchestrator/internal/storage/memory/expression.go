@@ -33,7 +33,7 @@ func New(config *config.Config) *Storage {
 func (s *Storage) Set(data *entity.Expression) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
-	if exp, ok := s.data[data.Expression]; ok {
+	if exp, ok := s.data[data.Expression+"-"+data.User]; ok {
 		data = exp.Value.(*entity.Expression)
 		return
 	}
@@ -45,7 +45,7 @@ func (s *Storage) Set(data *entity.Expression) {
 	postgresql_config.Save(s.config)
 	data.SetId(nextId)
 	newElement := s.queue.PushBack(data)
-	s.data[data.Expression] = newElement
+	s.data[data.Expression+"-"+data.User] = newElement
 	s.exists[data.ID] = data.Expression
 }
 
@@ -53,7 +53,7 @@ func (s *Storage) Set(data *entity.Expression) {
 func (s *Storage) SetFromDb(data *entity.Expression, status string) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
-	if data, ok := s.data[data.Expression]; ok {
+	if data, ok := s.data[data.Expression+"-"+data.User]; ok {
 		dataInfo := data.Value.(entity.Expression)
 		if dataInfo.Result == data.Value {
 			return
@@ -62,7 +62,7 @@ func (s *Storage) SetFromDb(data *entity.Expression, status string) {
 		return
 	}
 	newElement := s.queue.PushBack(data)
-	s.data[data.Expression] = newElement
+	s.data[data.Expression+"-"+data.User] = newElement
 	s.exists[data.ID] = data.Expression
 }
 
@@ -92,7 +92,9 @@ func (s *Storage) GetAll(user string) []*entity.Expression {
 	var data []*entity.Expression
 	for e := s.queue.Front(); e != nil; e = e.Next() {
 		element := e.Value.(*entity.Expression)
-		data = append(data, element)
+		if element.User == user {
+			data = append(data, element)
+		}
 	}
 	return data
 }

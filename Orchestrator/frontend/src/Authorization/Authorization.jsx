@@ -12,7 +12,7 @@ function SimpleDialog(props) {
 
   return (
     <Dialog open={open}>
-          <Form onClose={onClose} client={client} setUser={setUser} setIsLogin={setIsLogin} />
+          <Form client={client} setUser={setUser} setIsLogin={setIsLogin} />
     </Dialog>
   );
 }
@@ -23,9 +23,16 @@ SimpleDialog.propTypes = {
 };
 
 export default function Authorization(props) {
-  const {client, setIsLogin} = props
+  const {client, setIsLogin, isLogin } = props
   const [open, setOpen] = React.useState(false);
   const [user, setUser] = React.useState("");
+  React.useEffect(() => {
+    if (isLogin) {
+      setOpen(false);
+    } else {
+      setOpen(true);
+    }
+  },[isLogin])
   const handleClickOpen = () => {
     setOpen(true);
   };

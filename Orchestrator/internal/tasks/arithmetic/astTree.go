@@ -226,7 +226,7 @@ func calculate(resX float64, operator string, resY float64, parent *ASTTree, lev
 		deadline = parent.config.Divide
 
 	}
-	send := entity.NewOperation(parent.expression.Expression+"-"+level, resX, resY, operator, uint64(deadline))
+	send := entity.NewOperation(parent.expression.Expression+"-"+parent.expression.User+"-"+level, resX, resY, operator, uint64(deadline))
 	parent.queue.Enqueue(send)
 	res := result{}
 	resExp := <-send.ResultChan()
