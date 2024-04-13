@@ -13,7 +13,8 @@ services:
       ORCHESTRATOR_DB_NAME: orchestrator
       ORCHESTRATOR_DB_PORT: 5432
       ORCHESTRATOR_DB_USER: postgres
-      ORCHESTRATOR_DB__PASSWORD: postgres
+      ORCHESTRATOR_DB_PASSWORD: postgres
+      ORCHESTRATOR_HOST: orchesterator
     ports:
       - "8080:8080"
     container_name: orchesterator
@@ -39,7 +40,7 @@ services:
     volumes:
       - ./db_data:/var/lib/postgresql/data
     ports:
-      - "5433:5432"
+      - "5432:5432"
     networks:
       - orchesterator
 

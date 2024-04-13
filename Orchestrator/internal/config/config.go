@@ -60,6 +60,7 @@ func New() *Config {
 	dbPort := os.Getenv("ORCHESTRATOR_DB_PORT")
 	dbUser := os.Getenv("ORCHESTRATOR_DB_USER")
 	dbPassword := os.Getenv("ORCHESTRATOR_DB_PASSWORD")
+	host := os.Getenv("ORCHESTRATOR_HOST")
 	if httpPort == "" {
 		httpPort = "8080"
 	}
@@ -81,8 +82,11 @@ func New() *Config {
 	if dbPassword == "" {
 		dbPassword = "postgres"
 	}
+	if host == "" {
+		host = "localhost"
+	}
 	return &Config{
-		Host:      "localhost",
+		Host:      host,
 		HttpPort:  httpPort,
 		TCPPort:   tcpPort,
 		Db:        db,
