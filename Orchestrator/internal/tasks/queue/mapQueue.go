@@ -26,7 +26,6 @@ type MapQueue struct {
 	sync.RWMutex
 	mapQueue  map[string]Data
 	doneQueue map[string]Expression
-	Update    map[string]struct{}
 	queue     *LockFreeQueue
 	c         *config.Config
 }
@@ -43,7 +42,6 @@ func NewMapQueue(queue *LockFreeQueue, c *config.Config) *MapQueue {
 		queue:     queue,
 		mapQueue:  make(map[string]Data),
 		doneQueue: make(map[string]Expression),
-		Update:    make(map[string]struct{}),
 		c:         c,
 	}
 	go m.checkTime()

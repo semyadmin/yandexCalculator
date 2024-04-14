@@ -41,7 +41,17 @@ func NewExpression(conf *config.Config,
 		if exp.Err == nil {
 			exp.Duration = duration(exp.Expression, conf)
 		}
-		postgresql_ast.Add(exp, ast, conf.Db)
+		expDb := postgresql_ast.Expression{
+			BaseID:        exp.ID,
+			Expression:    exp.Expression,
+			User:          exp.User,
+			Value:         exp.Result,
+			CurrentResult: ast.PrintExpression(),
+		}
+		if exp.Err != nil {
+			expDb.Err = true
+		}
+		conf.Db.Extension.Add(expDb)
 		if err != nil {
 			resp := entity.NewResponseExpression(exp.ID, exp.Expression, time.Now(), 0, false, 0, err)
 			data, e := json.Marshal(resp)

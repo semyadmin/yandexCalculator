@@ -11,6 +11,7 @@ import (
 
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/config"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/entity"
+	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/storage/postgresql/postgresql_ast"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/tasks/queue"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/tasks/upgrade"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/web_socket/client"
@@ -147,6 +148,18 @@ func (a *ASTTree) calc() {
 		}
 	}()
 	slog.Info("Выражение вычислено", "выражение:", a.expression.Expression, "результат:", a.expression.Result)
+	// Сохраняем выражение в базу данных
+	newExp := postgresql_ast.Expression{
+		BaseID:        a.expression.ID,
+		Expression:    a.expression.Expression,
+		Value:         a.expression.Result,
+		User:          a.expression.User,
+		CurrentResult: a.PrintExpression(),
+	}
+	if res.err != nil {
+		newExp.Err = true
+	}
+	a.config.Db.Extension.Update(newExp)
 }
 
 // Печатаем полученное выражение, вычисленное в процессе, что бы
@@ -232,6 +245,7 @@ func calculate(resX float64, operator string, resY float64, parent *ASTTree, lev
 		deadline = parent.config.Divide
 
 	}
+	// Отправляем выражение в очередь для вычисления агентом
 	send := entity.NewOperation(parent.expression.Expression+"-"+parent.expression.User+"-"+level, resX, resY, operator, uint64(deadline))
 	parent.queue.Enqueue(send)
 	res := result{}
@@ -241,5 +255,17 @@ func calculate(resX float64, operator string, resY float64, parent *ASTTree, lev
 		return res
 	}
 	res.res = resExp
+	// Обновляем выражение в базе данных
+	newExp := postgresql_ast.Expression{
+		BaseID:        parent.expression.ID,
+		Expression:    parent.expression.Expression,
+		Value:         parent.expression.Result,
+		User:          parent.expression.User,
+		CurrentResult: parent.PrintExpression(),
+	}
+	if res.err != nil {
+		newExp.Err = true
+	}
+	parent.config.Db.Extension.Update(newExp)
 	return res
 }

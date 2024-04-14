@@ -2,15 +2,11 @@ package postgresql_ast
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"log/slog"
+	"sync"
 	"time"
-
-	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/config"
-	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/entity"
-	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/storage/memory"
-	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/tasks/arithmetic"
-	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/tasks/queue"
 )
 
 const (
@@ -23,63 +19,90 @@ const (
 	user          = "login"
 )
 
+type Expression struct {
+	BaseID        uint64
+	Expression    string
+	Value         float64
+	Err           bool
+	User          string
+	CurrentResult string
+}
+
+type Data struct {
+	conn *sql.DB
+	sync.Mutex
+	updateExp map[string]Expression
+}
+
+func NewData(conn *sql.DB) *Data {
+	data := &Data{
+		conn:      conn,
+		updateExp: make(map[string]Expression),
+	}
+	data.update()
+	return data
+}
+
 // Add — добавляет запись в базу данных
-func Add(exp *entity.Expression, ast *arithmetic.ASTTree, conn *sql.DB) {
+func (d *Data) Add(exp Expression) {
 	go func() {
 		var err error
 		for {
-			err = conn.Ping()
+			err = d.conn.Ping()
 			if err == nil {
 				break
 			}
 			time.Sleep(5 * time.Second)
 		}
+		isExp, err := d.isExpression(exp)
+		if err != nil {
+			slog.Info("Не удалось проверить наличие выражения в базе данных", "ошибка:", err)
+			return
+		}
+		if isExp {
+			slog.Info("Выражение уже существует в базе данных", "выражение:", exp)
+			return
+		}
 		query := fmt.Sprintf(`
 			INSERT INTO %s (%s, %s, %s, %s, %s, %s)
 			VALUES ($1, $2, $3, $4, $5, $6)`,
 			tableName, baseId, expression, user, value, errColumn, currentResult)
-		sqlPrepare, err := conn.Prepare(query)
+		sqlPrepare, err := d.conn.Prepare(query)
 		defer sqlPrepare.Close()
 		if err != nil {
 			return
 		}
-		astBaseID := exp.ID
-		astExp := exp.Expression
-		astUser := exp.User
-		astValue := exp.Result
-		astErr := exp.Err
-		astCurrentRes := ast.PrintExpression()
 
-		currentErr := false
-		if astErr != nil {
-			currentErr = true
-		}
 		_, err = sqlPrepare.Query(
-			astBaseID,
-			astExp,
-			astUser,
-			astValue,
-			currentErr,
-			astCurrentRes,
+			exp.BaseID,
+			exp.Expression,
+			exp.User,
+			exp.Value,
+			exp.Err,
+			exp.CurrentResult,
 		)
 		if err != nil {
-			slog.Info("Не удалось добавить запись в базу данных", "ошибка:", err)
+			slog.Info("Не удалось добавить запись в базу данных", "ошибка:", err, "выражение:", exp)
 			return
 		}
-		slog.Info("Добавлено выражение в базу данных", "выражение:", exp.Expression)
+		slog.Info("Добавлено выражение в базу данных", "выражение:", exp)
 	}()
 }
 
+func (d *Data) Update(exp Expression) {
+	d.Lock()
+	d.updateExp[exp.Expression] = exp
+	d.Unlock()
+}
+
 // Проверяем наличие выражения по строке выражения
-func GetByExpression(exp string, conf *config.Config) (bool, error) {
-	/* db := postgresql.DbConnect(conf)
-	defer db.Close()
-	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s = $1 LIMIT 1", expression, tableName, expression)
-	sqlPrepare, err := db.Prepare(query)
+func (d *Data) isExpression(exp Expression) (bool, error) {
+	query := fmt.Sprintf("SELECT %s FROM %s WHERE %s = $1 AND %s = $2 LIMIT 1", expression, tableName, expression, user)
+	sqlPrepare, err := d.conn.Prepare(query)
 	if err != nil {
 		return false, err
 	}
-	row := sqlPrepare.QueryRow(exp)
+	row := sqlPrepare.QueryRow(exp.Expression, exp.User)
 	result := ""
 	err = row.Scan(&result)
 	if errors.Is(err, sql.ErrNoRows) {
@@ -89,12 +112,11 @@ func GetByExpression(exp string, conf *config.Config) (bool, error) {
 		slog.Info("Не удалось отсканировать запись из базы данных", "ОШИБКА:", err)
 		return false, err
 	}
-	*/
 	return true, nil
 }
 
 // GetAll — получает все записи из базы данных
-func GetAll(conf *config.Config, q *queue.MapQueue, m *memory.Storage) {
+func GetAll() {
 	go func() {
 		/* db := postgresql.DbConnect(conf)
 		defer db.Close()
@@ -136,68 +158,50 @@ func GetAll(conf *config.Config, q *queue.MapQueue, m *memory.Storage) {
 }
 
 // Обновляем выражение по его строке выражения
-func Update(conf *config.Config, q *queue.MapQueue, m *memory.Storage) {
+func (d *Data) update() {
 	go func() {
-		/* for {
-			q.Lock()
-			items := []string{}
-			for item := range q.Update {
-				items = append(items, item)
-				delete(q.Update, item)
-			}
-			q.Unlock()
-			if len(items) == 0 {
-				time.Sleep(1 * time.Second)
+		var err error
+		items := make([]Expression, 0)
+		for {
+			err = d.conn.Ping()
+			if err != nil {
+				time.Sleep(5 * time.Second)
 				continue
 			}
-			db := postgresql.DbConnect(conf)
-
+			items = items[:0]
+			d.Lock()
+			for _, item := range d.updateExp {
+				items = append(items, item)
+				delete(d.updateExp, item.Expression)
+			}
+			d.Unlock()
 			for _, item := range items {
-				data, err := m.GeByExpression(item)
-				if err != nil {
-					continue
-				}
-				ast := data.Expression
-				if ast == nil {
-					continue
-				}
-				ast.Lock()
-				slog.Info("Получено выражение для обновления в базе", "выражение:", ast.Expression)
-				astBaseID := ast.ID
-				astExp := ast.Expression
-				astValue := ast.Value
-				astErr := ast.Err
-				ast.Unlock()
-				astCurrentRes := arithmetic.PrintExpression(ast)
 				query := fmt.Sprintf(`
 				UPDATE %s
 				SET %s = $1, %s = $2, %s = $3, %s = $4
-				WHERE %s = $5`,
-					tableName, baseId, value, errColumn, currentResult, expression)
-				sqlPrepare, err := db.Prepare(query)
+				WHERE %s = $5 AND %s = $6;`,
+					tableName, baseId, value, errColumn, currentResult, expression, user)
+				sqlPrepare, err := d.conn.Prepare(query)
 				if err != nil {
+					d.updateExp[item.Expression] = item
 					continue
 				}
-				currentErr := false
-
-				if astErr != nil {
-					currentErr = true
-				}
 				_, err = sqlPrepare.Query(
-					astBaseID,
-					astValue,
-					currentErr,
-					astCurrentRes,
-					astExp,
+					item.BaseID,
+					item.Value,
+					item.Err,
+					item.CurrentResult,
+					item.Expression,
+					item.User,
 				)
 				if err != nil {
+					d.updateExp[item.Expression] = item
 					continue
 				}
 				sqlPrepare.Close()
-				slog.Info("Обновление записи в базе данных", "выражение:", astExp)
+				slog.Info("Обновление записи в базе данных", "выражение:", item)
 			}
-			db.Close()
 			time.Sleep(1 * time.Second)
-		} */
+		}
 	}()
 }

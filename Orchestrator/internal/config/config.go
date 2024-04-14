@@ -2,7 +2,6 @@ package config
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"os"
 	"strconv"
@@ -22,7 +21,7 @@ type Config struct {
 	Host        string
 	HttpPort    string
 	TCPPort     string
-	Db          *sql.DB
+	Db          *postgresql.Storage
 	Plus        int64
 	Minus       int64
 	Multiply    int64
@@ -87,7 +86,7 @@ func New() *Config {
 		Host:      host,
 		HttpPort:  httpPort,
 		TCPPort:   tcpPort,
-		Db:        postgresql.DbConnect(db, dbPort, dbUser, dbPassword, dbName),
+		Db:        postgresql.NewPostgresConnect(db, dbPort, dbUser, dbPassword, dbName),
 		WSmanager: manager.NewManager(context.Background()),
 	}
 }

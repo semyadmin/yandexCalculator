@@ -11,7 +11,6 @@ import (
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/http/server"
 	sendtocalculate "github.com/adminsemy/yandexCalculator/Orchestrator/internal/services/send_to_calculate"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/storage/memory"
-	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/storage/postgresql/postgresql_ast"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/storage/postgresql/postgresql_config"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/tasks/queue"
 )
@@ -27,10 +26,6 @@ func main() {
 	userStorage := memory.NewUserStorage(conf)
 	// Создаем новую очередь
 	newQueue := queue.NewMapQueue(queue.NewLockFreeQueue(), conf)
-	// Загружаем все выражения из базы
-	postgresql_ast.GetAll(conf, newQueue, storage)
-	// Горутина для обновления результатов выражений
-	postgresql_ast.Update(conf, newQueue, storage)
 	// Запускаем GRPC сервер
 	ctx, cancel := context.WithCancel(context.Background())
 	grpcServer := grpcserver.NewServerGRPC(conf, sendtocalculate.NewSendToCalculate(newQueue))

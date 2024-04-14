@@ -1,15 +1,15 @@
 
-CREATE TABLE IF NOT EXISTS Expressions (
+CREATE TABLE Expressions (
     id SERIAL,
     baseID BIGINT,
     Expression text NOT NULL,
     Login text NOT NULL,
-    Value text,
+    Value double precision,
     Err boolean NOT NULL DEFAULT false,
     CurrentResult text
 );
 
-CREATE TABLE IF NOT EXISTS Configs (
+CREATE TABLE Configs (
     id SERIAL,
     Plus BIGINT,
     Minus BIGINT,
@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS Configs (
     MaxID BIGINT
 );
 
-CREATE TABLE IF NOT EXISTS Users (
+CREATE TABLE Users (
     id SERIAL,
     Login text NOT NULL,
     Password text NOT NULL
