@@ -2,7 +2,6 @@ package arithmetic
 
 import (
 	"encoding/json"
-	"errors"
 	"go/ast"
 	"go/parser"
 	"log/slog"
@@ -11,9 +10,8 @@ import (
 
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/config"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/entity"
-	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/storage/postgresql/postgresql_ast"
+	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/storage/postgresql/postgresql_expression"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/tasks/queue"
-	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/tasks/upgrade"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/web_socket/client"
 )
 
@@ -44,11 +42,8 @@ func NewASTTree(expression *entity.Expression,
 	if expression.Err != nil {
 		return nil, expression.Err
 	}
-	// Добавляем кавычки, где только возможно
-	upgradeExp := upgrade.Upgrade([]byte(expression.Expression))
-	slog.Info("Усовершенствованное выражение", "выражение:", string(upgradeExp))
 	// Создаем AST дерево
-	tr, err := parser.ParseExpr(string(upgradeExp))
+	tr, err := parser.ParseExpr(string(expression.CalculatedExpression))
 	if err != nil {
 		return nil, err
 	}
@@ -64,27 +59,21 @@ func NewASTTree(expression *entity.Expression,
 
 // Создаем AST дерево из базы данных
 func NewASTTreeDB(
-	id uint64,
 	expression *entity.Expression,
-	value string,
-	isErr bool,
-	currentResult string,
 	config *config.Config,
 	queue *queue.MapQueue,
 ) (*ASTTree, error) {
-	tr, err := parser.ParseExpr(currentResult)
+	tr, err := parser.ParseExpr(expression.CalculatedExpression)
 	if err != nil {
 		return nil, err
 	}
 	a := create(tr)
 	a.expression = expression
-	a.Value, _ = strconv.ParseFloat(value, 64)
-	if isErr {
-		a.Err = errors.New("error")
-	}
-	a.IsCalc = true
+	a.Value = expression.Result
+	a.IsCalc = expression.IsCalc
 	a.queue = queue
 	a.config = config
+	go a.calc()
 	return a, nil
 }
 
@@ -141,6 +130,7 @@ func (a *ASTTree) calc() {
 		slog.Error("Проблема с формированием ответа", "ошибка:", err)
 		return
 	}
+	// Отправляем ответ клиенту веб сокета
 	go func() {
 		a.config.WSmanager.MessageCh <- &client.Message{
 			Payload: answer,
@@ -149,7 +139,7 @@ func (a *ASTTree) calc() {
 	}()
 	slog.Info("Выражение вычислено", "выражение:", a.expression.Expression, "результат:", a.expression.Result)
 	// Сохраняем выражение в базу данных
-	newExp := postgresql_ast.Expression{
+	newExp := postgresql_expression.Expression{
 		BaseID:        a.expression.ID,
 		Expression:    a.expression.Expression,
 		Value:         a.expression.Result,
@@ -159,7 +149,7 @@ func (a *ASTTree) calc() {
 	if res.err != nil {
 		newExp.Err = true
 	}
-	a.config.Db.Extension.Update(newExp)
+	a.config.Db.Expression.Update(newExp)
 }
 
 // Печатаем полученное выражение, вычисленное в процессе, что бы
@@ -256,7 +246,7 @@ func calculate(resX float64, operator string, resY float64, parent *ASTTree, lev
 	}
 	res.res = resExp
 	// Обновляем выражение в базе данных
-	newExp := postgresql_ast.Expression{
+	newExp := postgresql_expression.Expression{
 		BaseID:        parent.expression.ID,
 		Expression:    parent.expression.Expression,
 		Value:         parent.expression.Result,
@@ -266,6 +256,6 @@ func calculate(resX float64, operator string, resY float64, parent *ASTTree, lev
 	if res.err != nil {
 		newExp.Err = true
 	}
-	parent.config.Db.Extension.Update(newExp)
+	parent.config.Db.Expression.Update(newExp)
 	return res
 }

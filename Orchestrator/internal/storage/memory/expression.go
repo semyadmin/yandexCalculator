@@ -7,7 +7,6 @@ import (
 
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/config"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/entity"
-	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/storage/postgresql/postgresql_config"
 )
 
 var ErrExpressionNotExists = errors.New("Выражение не существует")
@@ -30,40 +29,16 @@ func New(config *config.Config) *Storage {
 }
 
 // Сохраняем выражение в память
-func (s *Storage) Set(data *entity.Expression) {
+func (s *Storage) Set(data *entity.Expression) error {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
-	if exp, ok := s.data[data.Expression+"-"+data.User]; ok {
-		data = exp.Value.(*entity.Expression)
-		return
-	}
-	s.config.Lock()
-	s.config.MaxID++
-	nextId := s.config.MaxID
-	s.config.Unlock()
-	// Сохраняем в базу максимальный номер
-	postgresql_config.Save(s.config)
-	data.SetId(nextId)
-	newElement := s.queue.PushBack(data)
-	s.data[data.Expression+"-"+data.User] = newElement
-	s.exists[data.ID] = data.Expression
-}
-
-// Сохраняем выражение в память из базы данных
-func (s *Storage) SetFromDb(data *entity.Expression, status string) {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
-	if data, ok := s.data[data.Expression+"-"+data.User]; ok {
-		dataInfo := data.Value.(entity.Expression)
-		if dataInfo.Result == data.Value {
-			return
-		}
-		data.Value = data
-		return
+	if _, ok := s.data[data.Expression+"-"+data.User]; ok {
+		return errors.New("Выражение уже существует")
 	}
 	newElement := s.queue.PushBack(data)
 	s.data[data.Expression+"-"+data.User] = newElement
 	s.exists[data.ID] = data.Expression
+	return nil
 }
 
 // Возвращаем выражение из памяти по строке выражения

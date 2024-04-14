@@ -10,10 +10,11 @@ import (
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/entity"
 	jwttoken "github.com/adminsemy/yandexCalculator/Orchestrator/internal/services/jwt_token"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/storage/memory"
-	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/storage/postgresql/postgresql_ast"
+	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/storage/postgresql/postgresql_expression"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/tasks/arithmetic"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/tasks/queue"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/validator"
+	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/web_socket/client"
 )
 
 type NewExpressionAst struct {
@@ -34,14 +35,20 @@ func NewExpression(conf *config.Config,
 		return nil, err
 	}
 	exp, err := storage.GeByExpression(expression, user)
+	var resp entity.ResponseExpression
 	if errors.Is(err, memory.ErrExpressionNotExists) {
 		exp = entity.NewExpression(expression, "", validator.Validator, user)
+		conf.Lock()
+		conf.MaxID++
+		nextId := conf.MaxID
+		conf.Unlock()
+		exp.SetId(nextId)
 		storage.Set(exp)
 		ast, err := arithmetic.NewASTTree(exp, conf, queue)
 		if exp.Err == nil {
 			exp.Duration = duration(exp.Expression, conf)
 		}
-		expDb := postgresql_ast.Expression{
+		expDb := postgresql_expression.Expression{
 			BaseID:        exp.ID,
 			Expression:    exp.Expression,
 			User:          exp.User,
@@ -51,21 +58,23 @@ func NewExpression(conf *config.Config,
 		if exp.Err != nil {
 			expDb.Err = true
 		}
-		conf.Db.Extension.Add(expDb)
+		conf.Db.Expression.Add(expDb)
 		if err != nil {
-			resp := entity.NewResponseExpression(exp.ID, exp.Expression, time.Now(), 0, false, 0, err)
-			data, e := json.Marshal(resp)
-			if e != nil {
-				return nil, e
-			}
-			return data, nil
+			resp = entity.NewResponseExpression(exp.ID, exp.Expression, time.Now(), 0, false, 0, err)
+		} else {
+			resp = entity.NewResponseExpression(exp.ID, exp.Expression, time.Now(), exp.Duration, true, exp.Result, nil)
 		}
 	}
-	resp := entity.NewResponseExpression(exp.ID, exp.Expression, exp.Start, exp.Duration, exp.IsCalc, exp.Result, exp.Err)
 	data, e := json.Marshal(resp)
 	if e != nil {
 		return nil, e
 	}
+	go func() {
+		conf.WSmanager.MessageCh <- &client.Message{
+			Payload: data,
+			Type:    client.ClientExpression,
+		}
+	}()
 	return data, nil
 }
 

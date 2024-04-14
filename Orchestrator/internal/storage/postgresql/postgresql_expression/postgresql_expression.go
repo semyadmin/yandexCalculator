@@ -1,4 +1,4 @@
-package postgresql_ast
+package postgresql_expression
 
 import (
 	"database/sql"
@@ -116,12 +116,19 @@ func (d *Data) isExpression(exp Expression) (bool, error) {
 }
 
 // GetAll — получает все записи из базы данных
-func GetAll() {
+func (d *Data) GetAll(out chan<- Expression) {
 	go func() {
-		/* db := postgresql.DbConnect(conf)
-		defer db.Close()
-		query := fmt.Sprintf("SELECT %s, %s, %s, %s, %s FROM %s", baseId, expression, value, errColumn, currentResult, tableName)
-		sql, err := db.Prepare(query)
+		defer close(out)
+		var err error
+		for {
+			err = d.conn.Ping()
+			if err == nil {
+				break
+			}
+			time.Sleep(5 * time.Second)
+		}
+		query := fmt.Sprintf("SELECT %s, %s, %s, %s, %s %s FROM %s", baseId, expression, value, errColumn, currentResult, user, tableName)
+		sql, err := d.conn.Prepare(query)
 		if err != nil {
 			return
 		}
@@ -130,30 +137,14 @@ func GetAll() {
 			return
 		}
 		defer rows.Close()
-		currentId := uint64(0)
-		currentExp := ""
-		currentValue := ""
-		currentErr := false
-		currentResult := ""
 		for rows.Next() {
-			err := rows.Scan(&currentId, &currentExp, &currentValue, &currentErr, &currentResult)
+			expNew := Expression{}
+			err := rows.Scan(&expNew.BaseID, &expNew.Expression, &expNew.Value, &expNew.Err, &expNew.CurrentResult, &expNew.User)
 			if err != nil {
 				return
 			}
-			entity, _ := arithmetic.NewASTTreeDB(currentId, currentExp, currentValue, currentErr, currentResult, conf, q)
-			if entity == nil {
-				continue
-			}
-			entity.Lock()
-			entity.ID = currentId
-			entity.Expression = currentExp
-			entity.Value = currentValue
-			if currentErr {
-				entity.Err = errors.New("Здесь была ошибка")
-			}
-			entity.Unlock()
-			m.SetFromDb(entity, "saved")
-		} */
+			out <- expNew
+		}
 	}()
 }
 

@@ -5,13 +5,13 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/storage/postgresql/postgresql_ast"
+	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/storage/postgresql/postgresql_expression"
 	_ "github.com/lib/pq"
 )
 
 type Storage struct {
-	Db        *sql.DB
-	Extension *postgresql_ast.Data
+	Db         *sql.DB
+	Expression *postgresql_expression.Data
 }
 
 // Создаем подключение к базе данных
@@ -25,5 +25,8 @@ func NewPostgresConnect(Db, DbPort, DbUser, DbPass, DbName string) *Storage {
 		slog.Error("Неверные данные для подключения к базе данных", "ОШИБКА:", err)
 		panic(err)
 	}
-	return &Storage{Db: db, Extension: postgresql_ast.NewData(db)}
+	return &Storage{
+		Db:         db,
+		Expression: postgresql_expression.NewData(db),
+	}
 }

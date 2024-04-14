@@ -8,13 +8,12 @@ import (
 	"strings"
 
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/config"
-	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/services/auth"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/services/expression"
 	newexpression "github.com/adminsemy/yandexCalculator/Orchestrator/internal/services/expression"
+	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/services/user"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/storage/memory"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/storage/postgresql/postgresql_config"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/tasks/queue"
-	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/web_socket/client"
 )
 
 func NewServeMux(config *config.Config,
@@ -53,7 +52,7 @@ func authHandler(userStorage *memory.UserStorage) http.HandlerFunc {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		token, err := auth.User(userStorage, data)
+		token, err := user.User(userStorage, data)
 		if err != nil {
 			slog.Error("Невозможно добавить пользователя:", "ОШИБКА:", err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -146,12 +145,6 @@ func expressionHandler(config *config.Config,
 			}
 			w.WriteHeader(http.StatusAccepted)
 			w.Write(answer)
-			go func() {
-				config.WSmanager.MessageCh <- &client.Message{
-					Payload: answer,
-					Type:    client.ClientExpression,
-				}
-			}()
 			slog.Info("Выражение добавлено в базу", "ответ:", string(answer))
 		}
 	}

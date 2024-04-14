@@ -4,6 +4,8 @@ import (
 	"errors"
 	"strings"
 	"time"
+
+	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/tasks/upgrade"
 )
 
 type Expression struct {
@@ -22,15 +24,16 @@ func NewExpression(exp string, calcExp string, validator func(string) bool, user
 	exp = strings.ReplaceAll(exp, " ", "")
 	if !validator(exp) {
 		return &Expression{
-			Expression: exp,
-			Err:        errors.New("invalid expression"),
-			Start:      time.Now(),
-			User:       user,
+			Expression:           exp,
+			CalculatedExpression: string(upgrade.Upgrade([]byte(exp))),
+			Err:                  errors.New("invalid expression"),
+			Start:                time.Now(),
+			User:                 user,
 		}
 	}
 	return &Expression{
 		Expression:           exp,
-		CalculatedExpression: calcExp,
+		CalculatedExpression: string(upgrade.Upgrade([]byte(exp))),
 		Start:                time.Now(),
 		User:                 user,
 	}
