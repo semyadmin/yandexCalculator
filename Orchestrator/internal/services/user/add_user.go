@@ -9,6 +9,7 @@ import (
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/entity"
 	jwttoken "github.com/adminsemy/yandexCalculator/Orchestrator/internal/services/jwt_token"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/storage/memory"
+	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/storage/postgresql/postgresql_user"
 )
 
 const (
@@ -37,6 +38,10 @@ func User(userStorage *memory.UserStorage, data []byte, conf *config.Config) (st
 	if err != nil {
 		user.Password = hashPassword(user.Password)
 		userStorage.Add(userConfig)
+		go conf.Db.User.Add(postgresql_user.UserStorage{
+			Login:    user.Login,
+			Password: user.Password,
+		})
 		return jwttoken.GenerateToken(user.Login)
 	}
 	if foundUser.User.Password != hashPassword(user.Password) {

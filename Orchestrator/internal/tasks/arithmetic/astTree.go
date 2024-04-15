@@ -43,7 +43,7 @@ func NewASTTree(expression *entity.Expression,
 	userStorage *memory.UserStorage,
 ) (*ASTTree, error) {
 	if expression.Err != nil {
-		return nil, expression.Err
+		return nil, nil
 	}
 	// Создаем AST дерево
 	tr, err := parser.ParseExpr(string(expression.CalculatedExpression))

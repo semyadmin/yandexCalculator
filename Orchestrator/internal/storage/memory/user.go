@@ -33,8 +33,11 @@ func NewUserStorage(conf *config.Config) *UserStorage {
 func (u *UserStorage) Add(user *User) {
 	u.Lock()
 	defer u.Unlock()
-	u.MaxId++
-	user.User.Id = u.MaxId
+	if user.User.Id == 0 {
+		u.MaxId++
+		user.User.Id = u.MaxId
+	}
+	u.MaxId = max(u.MaxId, user.User.Id)
 	u.users[user.User.Login] = user
 	slog.Info("Добавлен новый пользователь", "пользователь:", user)
 }

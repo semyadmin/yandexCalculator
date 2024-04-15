@@ -45,48 +45,46 @@ func NewData(conn *sql.DB) *Data {
 
 // Add — добавляет запись в базу данных
 func (d *Data) Add(exp Expression) {
-	go func() {
-		var err error
-		for {
-			err = d.conn.Ping()
-			if err == nil {
-				break
-			}
-			time.Sleep(5 * time.Second)
+	var err error
+	for {
+		err = d.conn.Ping()
+		if err == nil {
+			break
 		}
-		isExp, err := d.isExpression(exp)
-		if err != nil {
-			slog.Info("Не удалось проверить наличие выражения в базе данных", "ошибка:", err)
-			return
-		}
-		if isExp {
-			slog.Info("Выражение уже существует в базе данных", "выражение:", exp)
-			return
-		}
-		query := fmt.Sprintf(`
+		time.Sleep(5 * time.Second)
+	}
+	isExp, err := d.isExpression(exp)
+	if err != nil {
+		slog.Info("Не удалось проверить наличие выражения в базе данных", "ошибка:", err)
+		return
+	}
+	if isExp {
+		slog.Info("Выражение уже существует в базе данных", "выражение:", exp)
+		return
+	}
+	query := fmt.Sprintf(`
 			INSERT INTO %s (%s, %s, %s, %s, %s, %s)
 			VALUES ($1, $2, $3, $4, $5, $6)`,
-			tableName, baseId, expression, user, value, errColumn, currentResult)
-		sqlPrepare, err := d.conn.Prepare(query)
-		defer sqlPrepare.Close()
-		if err != nil {
-			return
-		}
+		tableName, baseId, expression, user, value, errColumn, currentResult)
+	sqlPrepare, err := d.conn.Prepare(query)
+	defer sqlPrepare.Close()
+	if err != nil {
+		return
+	}
 
-		_, err = sqlPrepare.Query(
-			exp.BaseID,
-			exp.Expression,
-			exp.User,
-			exp.Value,
-			exp.Err,
-			exp.CurrentResult,
-		)
-		if err != nil {
-			slog.Info("Не удалось добавить запись в базу данных", "ошибка:", err, "выражение:", exp)
-			return
-		}
-		slog.Info("Добавлено выражение в базу данных", "выражение:", exp)
-	}()
+	_, err = sqlPrepare.Query(
+		exp.BaseID,
+		exp.Expression,
+		exp.User,
+		exp.Value,
+		exp.Err,
+		exp.CurrentResult,
+	)
+	if err != nil {
+		slog.Info("Не удалось добавить запись в базу данных", "ошибка:", err, "выражение:", exp)
+		return
+	}
+	slog.Info("Добавлено выражение в базу данных", "выражение:", exp)
 }
 
 func (d *Data) Update(exp Expression) {

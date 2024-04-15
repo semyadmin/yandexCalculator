@@ -17,7 +17,7 @@ export default function TwoTabPanel(props) {
   const { value, index, client, isLogin } = props;
   const [plus, setPlus] = React.useState(0);
   const [minus, setMinus] = React.useState(0);
-  const [multi, setMulti] = React.useState(0);
+  const [multiply, setMulti] = React.useState(0);
   const [divide, setDivide] = React.useState(0);
   const onChangePlus = (event) => {
     setPlus(event.target.value);
@@ -69,7 +69,7 @@ export default function TwoTabPanel(props) {
       .post('duration', {
         plus: Number(plus),
         minus: Number(minus),
-        multiply: Number(multi),
+        multiply: Number(multiply),
         divide: Number(divide)
       },{
         headers: { 
@@ -138,7 +138,7 @@ export default function TwoTabPanel(props) {
               <TextField 
                 id="plus"
                 label="Значение для умножить"
-                value={multi}
+                value={multiply}
                 sx={{ mt: 1, mb: 1 }}
                 onChange={onChangeMulti}
               />

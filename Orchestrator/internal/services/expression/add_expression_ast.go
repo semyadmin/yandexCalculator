@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"log/slog"
-	"time"
 
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/config"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/entity"
@@ -38,6 +37,7 @@ func NewExpression(conf *config.Config,
 	exp, err := storage.GeByExpression(expression, user)
 	var resp entity.ResponseExpression
 	if errors.Is(err, memory.ErrExpressionNotExists) {
+
 		exp = entity.NewExpression(expression, "", validator.Validator, user)
 		conf.Lock()
 		conf.MaxID++
@@ -45,7 +45,10 @@ func NewExpression(conf *config.Config,
 		conf.Unlock()
 		exp.SetId(nextId)
 		storage.Set(exp)
-		ast, err := arithmetic.NewASTTree(exp, conf, queue, userStorage)
+		_, err := arithmetic.NewASTTree(exp, conf, queue, userStorage)
+		if err != nil {
+			return nil, err
+		}
 		if exp.Err == nil {
 			c, err := userStorage.GetConfig(user)
 			if err != nil {
@@ -54,21 +57,18 @@ func NewExpression(conf *config.Config,
 			exp.Duration = duration(exp.Expression, c)
 		}
 		expDb := postgresql_expression.Expression{
-			BaseID:        exp.ID,
-			Expression:    exp.Expression,
-			User:          exp.User,
-			Value:         exp.Result,
-			CurrentResult: ast.PrintExpression(),
+			BaseID:     exp.ID,
+			Expression: exp.Expression,
+			User:       exp.User,
+			Value:      exp.Result,
 		}
 		if exp.Err != nil {
 			expDb.Err = true
 		}
-		conf.Db.Expression.Add(expDb)
-		if err != nil {
-			resp = entity.NewResponseExpression(exp.ID, exp.Expression, time.Now(), 0, false, 0, err)
-		} else {
-			resp = entity.NewResponseExpression(exp.ID, exp.Expression, time.Now(), exp.Duration, true, exp.Result, nil)
-		}
+		go conf.Db.Expression.Add(expDb)
+
+		resp = entity.NewResponseExpression(exp.ID, exp.Expression, exp.Start, exp.Duration, exp.IsCalc, exp.Result, exp.Err)
+
 	}
 	data, e := json.Marshal(resp)
 	if e != nil {
