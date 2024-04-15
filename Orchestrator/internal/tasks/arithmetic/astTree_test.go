@@ -5,15 +5,17 @@ import (
 
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/config"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/entity"
+	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/storage/memory"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/tasks/queue"
 )
 
 func TestNewASTTree(t *testing.T) {
 	type args struct {
-		expression *entity.Expression
-		config     *config.Config
-		queue      *queue.MapQueue
-		validator  func(string) bool
+		expression  *entity.Expression
+		config      *config.Config
+		queue       *queue.MapQueue
+		userStorage *memory.UserStorage
+		validator   func(string) bool
 	}
 	conf := config.New()
 	q := queue.NewMapQueue(queue.NewLockFreeQueue(), conf)
@@ -43,7 +45,7 @@ func TestNewASTTree(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := NewASTTree(tt.args.expression, tt.args.config, tt.args.queue)
+			got, err := NewASTTree(tt.args.expression, tt.args.config, tt.args.queue, tt.args.userStorage)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("NewASTTree() error = %v, wantErr %v", err, tt.wantErr)
 				return

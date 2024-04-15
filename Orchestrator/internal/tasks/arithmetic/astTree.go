@@ -10,22 +10,24 @@ import (
 
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/config"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/entity"
+	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/storage/memory"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/storage/postgresql/postgresql_expression"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/tasks/queue"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/web_socket/client"
 )
 
 type ASTTree struct {
-	expression *entity.Expression
-	X          *ASTTree
-	Y          *ASTTree
-	Operator   string
-	Value      float64
-	IsCalc     bool
-	IsParent   bool
-	queue      *queue.MapQueue
-	config     *config.Config
-	Err        error
+	expression  *entity.Expression
+	X           *ASTTree
+	Y           *ASTTree
+	Operator    string
+	Value       float64
+	IsCalc      bool
+	IsParent    bool
+	queue       *queue.MapQueue
+	config      *config.Config
+	userStorage *memory.UserStorage
+	Err         error
 	sync.Mutex
 }
 
@@ -38,6 +40,7 @@ type result struct {
 func NewASTTree(expression *entity.Expression,
 	config *config.Config,
 	queue *queue.MapQueue,
+	userStorage *memory.UserStorage,
 ) (*ASTTree, error) {
 	if expression.Err != nil {
 		return nil, expression.Err
@@ -53,6 +56,7 @@ func NewASTTree(expression *entity.Expression,
 	a.queue = queue
 	a.config = config
 	a.IsCalc = expression.IsCalc
+	a.userStorage = userStorage
 	go a.calc()
 	return a, nil
 }
@@ -224,15 +228,19 @@ func getResult(a *ASTTree, ch chan result, parent *ASTTree, level string) {
 // Вычисляем операцию в зависимости от оператора
 func calculate(resX float64, operator string, resY float64, parent *ASTTree, level string) result {
 	deadline := int64(0)
+	config, err := parent.userStorage.GetConfig(parent.expression.User)
+	if err != nil {
+		config = &entity.Config{}
+	}
 	switch operator {
 	case "+":
-		deadline = parent.config.Plus
+		deadline = config.Plus
 	case "-":
-		deadline = parent.config.Minus
+		deadline = config.Minus
 	case "*":
-		deadline = parent.config.Multiply
+		deadline = config.Multiply
 	case "/":
-		deadline = parent.config.Divide
+		deadline = config.Divide
 
 	}
 	// Отправляем выражение в очередь для вычисления агентом

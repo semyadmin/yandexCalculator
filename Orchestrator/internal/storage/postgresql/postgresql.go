@@ -25,8 +25,10 @@ func NewPostgresConnect(Db, DbPort, DbUser, DbPass, DbName string) *Storage {
 		slog.Error("Неверные данные для подключения к базе данных", "ОШИБКА:", err)
 		panic(err)
 	}
-	return &Storage{
+	s := &Storage{
 		Db:         db,
 		Expression: postgresql_expression.NewData(db),
 	}
+
+	return s
 }

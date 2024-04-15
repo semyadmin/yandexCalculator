@@ -14,7 +14,7 @@ export default function TwoTabPanel(props) {
   const [textSnackbarSuccess, setTextSnackbarSuccess] = React.useState('')
   const [textSnackbarError, setTextSnackbarError] = React.useState('')
   const [openError, setOpenError] = React.useState(false);
-  const { value, index, client } = props;
+  const { value, index, client, isLogin } = props;
   const [plus, setPlus] = React.useState(0);
   const [minus, setMinus] = React.useState(0);
   const [multi, setMulti] = React.useState(0);
@@ -32,28 +32,52 @@ export default function TwoTabPanel(props) {
     setDivide(event.target.value);
   }
   React.useEffect(() => {
-    const getOperators = () => {
-      client
-        .get('duration')
-        .then((response) => {
-          setPlus(response.data.plus)
-          setMinus(response.data.minus)
-          setMulti(response.data.multi)
-          setDivide(response.data.divide)
-        })
-    }
-    getOperators()    
-  },[])
+    if (isLogin) {
+      const getOperators = () => {
+        const token = sessionStorage.getItem('token');
+        if (token === null) {
+          return
+        }
+        client
+          .get('duration', {
+            headers: { 
+                'Content-Type' : 'text/plain',
+                'Authorization': `Bearer ${token}`,
+            }
+          })
+          .then((response) => {
+            setPlus(response.data.plus)
+            setMinus(response.data.minus)
+            setMulti(response.data.multiply)
+            setDivide(response.data.divide)
+          })
+      }
+      getOperators()
+    } else {
+      setPlus(0)
+      setMinus(0)
+      setMulti(0)
+      setDivide(0)
+    } 
+  },[isLogin])
   const sendOperators = () => {
+    const token = sessionStorage.getItem('token');
+    if (token === null) {
+      return
+    }
     client
       .post('duration', {
-        plus: plus,
-        minus: minus,
-        multi: multi,
-        divide: divide
+        plus: Number(plus),
+        minus: Number(minus),
+        multiply: Number(multi),
+        divide: Number(divide)
+      },{
+        headers: { 
+            'Content-Type' : 'application/json',
+            'Authorization': `Bearer ${token}`,
+        }
       })
       .then((response) => {
-          console.log(response)
           setPlus(response.data.plus)
           setMinus(response.data.minus)
           setMulti(response.data.multi)

@@ -1,8 +1,6 @@
 package postgresql_config
 
 import (
-	"log/slog"
-
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/config"
 )
 
@@ -101,33 +99,6 @@ func create(conf *config.Config) {
 	sqlPrepare.Query(0, 0, 0, 0, 0) */
 }
 
-// Инициализируем конфиг
-func (c *Conf) Init(conf *config.Config) {
-	conf.Lock()
-	defer conf.Unlock()
-	c.Plus = conf.Plus
-	c.Minus = conf.Minus
-	c.Multiply = conf.Multiply
-	c.Divide = conf.Divide
-	c.MaxID = conf.MaxID
-}
-
 // Загружаем сохраненную конфигурацию во время старта приложения
 // Пытаемся подключиться к базе данных. Если данные будут изменены и потом будет
 // подключена к базе данных, то конфиг будет перезаписан
-func Load(conf *config.Config) {
-	go func() {
-		duration, err := GetByIdOne(conf)
-		if err != nil {
-			slog.Error("Не удалось загрузить конфигурацию", "ошибка:", err)
-		}
-		conf.Lock()
-		defer conf.Unlock()
-		conf.Plus = duration.Plus
-		conf.Minus = duration.Minus
-		conf.Multiply = duration.Multiply
-		conf.Divide = duration.Divide
-		conf.MaxID = duration.MaxID
-		slog.Info("Загружена конфигурация", "конфиг:", conf)
-	}()
-}

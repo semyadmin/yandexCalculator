@@ -31,14 +31,19 @@ func GetAllExpressions(storage *memory.Storage, token string) []entity.ResponseE
 	return result
 }
 
-func LoadFromDb(conf *config.Config, storage *memory.Storage, queue *queue.MapQueue) {
+func LoadFromDb(
+	conf *config.Config,
+	storage *memory.Storage,
+	queue *queue.MapQueue,
+	userStorage *memory.UserStorage,
+) {
 	exp := make(chan postgresql_expression.Expression)
 	go func() {
+		conf.Db.Expression.GetAll(exp)
 		for expression := range exp {
 			newExp := &entity.Expression{
 				ID:                   expression.BaseID,
 				Start:                time.Now(),
-				Duration:             duration(expression.Expression, conf),
 				Expression:           expression.Expression,
 				CalculatedExpression: expression.CurrentResult,
 				Result:               expression.Value,
@@ -51,10 +56,12 @@ func LoadFromDb(conf *config.Config, storage *memory.Storage, queue *queue.MapQu
 			if err == nil {
 				newExp.IsCalc = true
 			}
+			conf.MaxID = max(conf.MaxID, newExp.ID)
 			err = storage.Set(newExp)
 			if err == nil {
-				arithmetic.NewASTTree(newExp, conf, queue)
+				arithmetic.NewASTTree(newExp, conf, queue, userStorage)
 			}
+			slog.Info("Загружено выражение:", "выражение", newExp)
 			resp := entity.NewResponseExpression(
 				newExp.ID,
 				newExp.Expression,
@@ -75,5 +82,6 @@ func LoadFromDb(conf *config.Config, storage *memory.Storage, queue *queue.MapQu
 				}
 			}()
 		}
+		slog.Info("Загрузка выражений из базы данных завершена")
 	}()
 }

@@ -28,6 +28,7 @@ func NewExpression(conf *config.Config,
 	queue *queue.MapQueue,
 	expression string,
 	token string,
+	userStorage *memory.UserStorage,
 ) ([]byte, error) {
 	user, err := jwttoken.ParseToken(token)
 	if err != nil {
@@ -44,9 +45,13 @@ func NewExpression(conf *config.Config,
 		conf.Unlock()
 		exp.SetId(nextId)
 		storage.Set(exp)
-		ast, err := arithmetic.NewASTTree(exp, conf, queue)
+		ast, err := arithmetic.NewASTTree(exp, conf, queue, userStorage)
 		if exp.Err == nil {
-			exp.Duration = duration(exp.Expression, conf)
+			c, err := userStorage.GetConfig(user)
+			if err != nil {
+				return nil, err
+			}
+			exp.Duration = duration(exp.Expression, c)
 		}
 		expDb := postgresql_expression.Expression{
 			BaseID:        exp.ID,
@@ -78,7 +83,7 @@ func NewExpression(conf *config.Config,
 	return data, nil
 }
 
-func duration(exp string, config *config.Config) int64 {
+func duration(exp string, config *entity.Config) int64 {
 	res := int64(0)
 	for i := 0; i < len(exp); i++ {
 		if exp[i] == '+' {

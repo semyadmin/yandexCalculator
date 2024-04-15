@@ -9,11 +9,16 @@ import (
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/entity"
 )
 
+type User struct {
+	User   *entity.User
+	Config *entity.Config
+}
+
 const errUserNotExists = "Пользователь не существует"
 
 type UserStorage struct {
 	conf  *config.Config
-	users map[string]*entity.User
+	users map[string]*User
 	MaxId uint64
 	sync.Mutex
 }
@@ -21,20 +26,20 @@ type UserStorage struct {
 func NewUserStorage(conf *config.Config) *UserStorage {
 	return &UserStorage{
 		conf:  conf,
-		users: make(map[string]*entity.User),
+		users: make(map[string]*User),
 	}
 }
 
-func (u *UserStorage) Add(user *entity.User) {
+func (u *UserStorage) Add(user *User) {
 	u.Lock()
 	defer u.Unlock()
 	u.MaxId++
-	user.Id = u.MaxId
-	u.users[user.Login] = user
+	user.User.Id = u.MaxId
+	u.users[user.User.Login] = user
 	slog.Info("Добавлен новый пользователь", "пользователь:", user)
 }
 
-func (u *UserStorage) FindUser(login string) (*entity.User, error) {
+func (u *UserStorage) FindUser(login string) (*User, error) {
 	u.Lock()
 	defer u.Unlock()
 	user := u.users[login]
@@ -44,8 +49,27 @@ func (u *UserStorage) FindUser(login string) (*entity.User, error) {
 	return user, nil
 }
 
-func (u *UserStorage) GetId(user string) *entity.User {
+func (u *UserStorage) GetId(user string) *User {
 	u.Lock()
 	defer u.Unlock()
 	return u.users[user]
+}
+
+func (u *UserStorage) SetConfig(user string, config *entity.Config) error {
+	u.Lock()
+	defer u.Unlock()
+	if _, ok := u.users[user]; !ok {
+		return errors.New(errUserNotExists)
+	}
+	u.users[user].Config = config
+	return nil
+}
+
+func (u *UserStorage) GetConfig(user string) (*entity.Config, error) {
+	u.Lock()
+	defer u.Unlock()
+	if _, ok := u.users[user]; !ok {
+		return nil, errors.New(errUserNotExists)
+	}
+	return u.users[user].Config, nil
 }

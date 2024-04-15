@@ -127,7 +127,7 @@ func (d *Data) GetAll(out chan<- Expression) {
 			}
 			time.Sleep(5 * time.Second)
 		}
-		query := fmt.Sprintf("SELECT %s, %s, %s, %s, %s %s FROM %s", baseId, expression, value, errColumn, currentResult, user, tableName)
+		query := fmt.Sprintf("SELECT %s, %s, %s, %s, %s, %s FROM %s", baseId, expression, value, errColumn, currentResult, user, tableName)
 		sql, err := d.conn.Prepare(query)
 		if err != nil {
 			return

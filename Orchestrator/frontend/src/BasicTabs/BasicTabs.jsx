@@ -36,7 +36,7 @@ import Authorization from '../Authorization/Authorization';
           </Tabs>
         </Box>
         <CustomTabPanel value={value} index={0} client={client} isLogin={isLogin}/>
-        <TwoTabPanel value={value} index={1} client={client} />
+        <TwoTabPanel value={value} index={1} client={client} isLogin={isLogin} />
         <ThreeTabPanel value={value} index={2} client={client} />
       </Box>
     );

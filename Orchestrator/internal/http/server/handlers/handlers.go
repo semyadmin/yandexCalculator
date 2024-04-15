@@ -8,11 +8,11 @@ import (
 	"strings"
 
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/config"
+	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/services/duration"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/services/expression"
 	newexpression "github.com/adminsemy/yandexCalculator/Orchestrator/internal/services/expression"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/services/user"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/storage/memory"
-	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/storage/postgresql/postgresql_config"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/tasks/queue"
 )
 
@@ -28,11 +28,11 @@ func NewServeMux(config *config.Config,
 	// Страница статики для фронтенда
 	serveMux.Handle("/", http.FileServer(http.Dir(patchToFront)))
 	// Аутентификация
-	serveMux.HandleFunc("/api/v1/auth", authHandler(userStorage))
+	serveMux.HandleFunc("/api/v1/auth", authHandler(userStorage, config))
 	// Установка продолжительности работы выражений
-	serveMux.HandleFunc("/duration", durationHandler(config))
+	serveMux.HandleFunc("/duration", authMiddleware(durationHandler(userStorage)))
 	// Получение выражения
-	serveMux.HandleFunc("/expression", authMiddleware(expressionHandler(config, queue, storage)))
+	serveMux.HandleFunc("/expression", authMiddleware(expressionHandler(config, queue, storage, userStorage)))
 	// Отдаем все сохраненные выражения
 	serveMux.HandleFunc("/getexpressions", authMiddleware(getExpressionsHandler(storage)))
 	// Получение выражения по ID
@@ -44,7 +44,7 @@ func NewServeMux(config *config.Config,
 	return serveMux, nil
 }
 
-func authHandler(userStorage *memory.UserStorage) http.HandlerFunc {
+func authHandler(userStorage *memory.UserStorage, conf *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		data, err := io.ReadAll(r.Body)
 		if err != nil {
@@ -52,7 +52,7 @@ func authHandler(userStorage *memory.UserStorage) http.HandlerFunc {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		token, err := user.User(userStorage, data)
+		token, err := user.User(userStorage, data, conf)
 		if err != nil {
 			slog.Error("Невозможно добавить пользователя:", "ОШИБКА:", err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -126,6 +126,7 @@ func getWorkers(conf *config.Config, q *queue.MapQueue) http.HandlerFunc {
 func expressionHandler(config *config.Config,
 	queue *queue.MapQueue,
 	storage *memory.Storage,
+	userStorage *memory.UserStorage,
 ) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodPost {
@@ -138,7 +139,14 @@ func expressionHandler(config *config.Config,
 			slog.Info("Полученное выражение от пользователя:", "выражение:", string(data))
 			auth := r.Header.Get("Authorization")
 			token := strings.Split(auth, " ")
-			answer, err := newexpression.NewExpression(config, storage, queue, string(data), token[1])
+			answer, err := newexpression.NewExpression(
+				config,
+				storage,
+				queue,
+				string(data),
+				token[1],
+				userStorage,
+			)
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
@@ -167,11 +175,12 @@ func getExpressionsHandler(storage *memory.Storage) http.HandlerFunc {
 }
 
 // Обрабатываем входящее время и возвращаем
-func durationHandler(conf *config.Config) http.HandlerFunc {
+func durationHandler(userStorage *memory.UserStorage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Обрабатываем входящее время
+		auth := r.Header.Get("Authorization")
+		token := strings.Split(auth, " ")
 		if r.Method == http.MethodPost {
-			newDuration := config.ConfigExpression{}
 			data, err := io.ReadAll(r.Body)
 			if err != nil {
 				slog.Error("Проблема с чтением данных:", "ошибка:", err)
@@ -179,29 +188,19 @@ func durationHandler(conf *config.Config) http.HandlerFunc {
 				return
 			}
 			slog.Info("Полученное время для операций от пользователя:", "данные:", string(data))
-			json.Unmarshal(data, &newDuration)
-			err = conf.NewDuration(&newDuration)
-			if err != nil {
-				slog.Error("Некорректное время:", "ошибка:", err)
-				http.Error(w, err.Error(), http.StatusBadRequest)
-				return
-			}
-			data, err = json.Marshal(newDuration)
+			data, err = duration.ChangeDuration(data, token[1], userStorage)
 			if err != nil {
 				slog.Error("Невозможно сериализовать данные:", "ошибка:", err)
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
-			// Сохраняем в базу
-			postgresql_config.Save(conf)
-			slog.Info("Время для операций обновлено и отправлено", "новое время:", newDuration)
+
+			slog.Info("Время для операций обновлено и отправлено", "новое время:", string(data))
 			w.Write(data)
 		}
 		// Возвращаем текущее установки времени
 		if r.Method == http.MethodGet {
-			newDuration := config.ConfigExpression{}
-			newDuration.Init(conf)
-			data, err := json.Marshal(newDuration)
+			data, err := duration.GetDuration(token[1], userStorage)
 			if err != nil {
 				slog.Error("Невозможно сериализовать данные:", "ошибка:", err)
 				http.Error(w, err.Error(), http.StatusInternalServerError)

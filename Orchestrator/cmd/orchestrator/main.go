@@ -9,23 +9,23 @@ import (
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/config"
 	grpcserver "github.com/adminsemy/yandexCalculator/Orchestrator/internal/grpc_server"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/http/server"
+	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/services/expression"
 	sendtocalculate "github.com/adminsemy/yandexCalculator/Orchestrator/internal/services/send_to_calculate"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/storage/memory"
-	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/storage/postgresql/postgresql_config"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/tasks/queue"
 )
 
 func main() {
 	// Создаем конфигурацию
 	conf := config.New()
-	// Загружаем конфигурацию из базы
-	postgresql_config.Load(conf)
 	// Создаем сторадж для хранения выражений в памяти
 	storage := memory.New(conf)
 	// Создаем сторадж для хранения пользователей в памяти
 	userStorage := memory.NewUserStorage(conf)
 	// Создаем новую очередь
 	newQueue := queue.NewMapQueue(queue.NewLockFreeQueue(), conf)
+	// Загружаем выражения из базы
+	expression.LoadFromDb(conf, storage, newQueue, userStorage)
 	// Запускаем GRPC сервер
 	ctx, cancel := context.WithCancel(context.Background())
 	grpcServer := grpcserver.NewServerGRPC(conf, sendtocalculate.NewSendToCalculate(newQueue))
