@@ -38,50 +38,48 @@ func LoadFromDb(
 	userStorage *memory.UserStorage,
 ) {
 	exp := make(chan postgresql_expression.Expression)
-	go func() {
-		conf.Db.Expression.GetAll(exp)
-		for expression := range exp {
-			newExp := &entity.Expression{
-				ID:                   expression.BaseID,
-				Start:                time.Now(),
-				Expression:           expression.Expression,
-				CalculatedExpression: expression.CurrentResult,
-				Result:               expression.Value,
-				User:                 expression.User,
-			}
-			if expression.Err {
-				newExp.Err = errors.New("ошибка вычисления")
-			}
-			_, err := strconv.ParseFloat(expression.CurrentResult, 64)
-			if err == nil {
-				newExp.IsCalc = true
-			}
-			conf.MaxID = max(conf.MaxID, newExp.ID)
-			err = storage.Set(newExp)
-			if err == nil {
-				arithmetic.NewASTTree(newExp, conf, queue, userStorage)
-			}
-			slog.Info("Загружено выражение:", "выражение", newExp)
-			resp := entity.NewResponseExpression(
-				newExp.ID,
-				newExp.Expression,
-				newExp.Start,
-				newExp.Duration,
-				newExp.IsCalc,
-				newExp.Result,
-				newExp.Err)
-			data, e := json.Marshal(resp)
-			if e != nil {
-				slog.Error("Невозможно сериализовать ответ:", "ОШИБКА:", e)
-				continue
-			}
-			go func() {
-				conf.WSmanager.MessageCh <- &client.Message{
-					Payload: data,
-					Type:    client.ClientExpression,
-				}
-			}()
+	conf.Db.Expression.GetAll(exp)
+	for expression := range exp {
+		newExp := &entity.Expression{
+			ID:                   expression.BaseID,
+			Start:                time.Now(),
+			Expression:           expression.Expression,
+			CalculatedExpression: expression.CurrentResult,
+			Result:               expression.Value,
+			User:                 expression.User,
 		}
-		slog.Info("Загрузка выражений из базы данных завершена")
-	}()
+		if expression.Err {
+			newExp.Err = errors.New("ошибка вычисления")
+		}
+		_, err := strconv.ParseFloat(expression.CurrentResult, 64)
+		if err == nil {
+			newExp.IsCalc = true
+		}
+		conf.MaxID = max(conf.MaxID, newExp.ID)
+		err = storage.Set(newExp)
+		if err == nil {
+			arithmetic.NewASTTree(newExp, conf, queue, userStorage)
+		}
+		slog.Info("Загружено выражение:", "выражение", newExp)
+		resp := entity.NewResponseExpression(
+			newExp.ID,
+			newExp.Expression,
+			newExp.Start,
+			newExp.Duration,
+			newExp.IsCalc,
+			newExp.Result,
+			newExp.Err)
+		data, e := json.Marshal(resp)
+		if e != nil {
+			slog.Error("Невозможно сериализовать ответ:", "ОШИБКА:", e)
+			continue
+		}
+		go func() {
+			conf.WSmanager.MessageCh <- &client.Message{
+				Payload: data,
+				Type:    client.ClientExpression,
+			}
+		}()
+	}
+	slog.Info("Загрузка выражений из базы данных завершена")
 }

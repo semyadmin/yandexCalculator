@@ -52,7 +52,7 @@ func (d *Data) Add(user UserStorage) {
 		user.Password,
 	)
 	if err != nil {
-		slog.Info("Не удалось добавить пользователя в базу данных", "пользователь:", user)
+		slog.Info("Не удалось добавить пользователя в базу данных", "ошибка:", err, "пользователь:", user)
 		return
 	}
 }

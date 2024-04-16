@@ -64,6 +64,7 @@ func (u *UserStorage) SetConfig(user string, config *entity.Config) error {
 	if _, ok := u.users[user]; !ok {
 		return errors.New(errUserNotExists)
 	}
+	slog.Info("Сохранена конфигурация пользователя", "пользователь:", user, "конфигурация:", config)
 	u.users[user].Config = config
 	return nil
 }

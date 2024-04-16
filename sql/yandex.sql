@@ -21,5 +21,5 @@ CREATE TABLE Configs (
 CREATE TABLE Users (
     id SERIAL,
     Login text NOT NULL,
-    Password text NOT NULL
+    Password bytea NOT NULL
 );

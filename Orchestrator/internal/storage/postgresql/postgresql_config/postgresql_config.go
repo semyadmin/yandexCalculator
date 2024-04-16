@@ -1,7 +1,10 @@
 package postgresql_config
 
 import (
-	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/config"
+	"database/sql"
+	"fmt"
+	"log/slog"
+	"time"
 )
 
 const (
@@ -10,95 +13,81 @@ const (
 	minus     = "minus"
 	multiply  = "multiply"
 	divide    = "divide"
-	maxid     = "maxid"
+	login     = "login"
 )
 
-type Conf struct {
+type Config struct {
 	Plus     int64
 	Minus    int64
 	Multiply int64
 	Divide   int64
-	MaxID    uint64
+	Login    string
 }
 
-// Add — добавляет запись в базу данных
-func Save(conf *config.Config) {
-	/* go func() {
-		db := postgresql.DbConnect(conf)
-		defer db.Close()
-		query := fmt.Sprintf(`
-		UPDATE %s
-		SET %s = $1, %s = $2, %s = $3, %s = $4, %s = $5
-		WHERE id = 1`, tableName, plus, minus, multiply, divide, maxid)
-		sqlPrepare, err := db.Prepare(query)
-		defer sqlPrepare.Close()
-		if err != nil {
-			return
+type Data struct {
+	conn *sql.DB
+}
+
+func New(conn *sql.DB) *Data {
+	return &Data{
+		conn: conn,
+	}
+}
+
+func (d *Data) Add(conf Config) error {
+	var err error
+	for {
+		err = d.conn.Ping()
+		if err == nil {
+			break
 		}
-		newConf := Conf{}
-		newConf.Init(conf)
-		_, err = sqlPrepare.Query(
-			newConf.Plus,
-			newConf.Minus,
-			newConf.Multiply,
-			newConf.Divide,
-			newConf.MaxID,
-		)
-		if err != nil {
-			slog.Info("Не удалось обновить конфигурацию", "ошибка:", err)
-			return
-		}
-
-		slog.Info("Обновлена запись конфигурации", "конфиг:", newConf)
-	}() */
-}
-
-// Ищем созданную конфигурацию в базе данных. Ищем по ID = 1
-func GetByIdOne(conf *config.Config) (Conf, error) {
-	/* db := postgresql.DbConnect(conf)
-	defer db.Close()
-	query := fmt.Sprintf("SELECT %s, %s, %s, %s, %s FROM %s WHERE id = $1", plus, minus, multiply, divide, maxid, tableName)
-	prepare, err := db.Prepare(query)
-	if err != nil {
-		return Conf{}, err
+		time.Sleep(5 * time.Second)
 	}
-	result := Conf{}
-	row := prepare.QueryRow(1)
-	err = row.Scan(
-		&result.Plus,
-		&result.Minus,
-		&result.Multiply,
-		&result.Divide,
-		&result.MaxID,
-	)
-	if errors.Is(sql.ErrNoRows, err) {
-		create(conf)
-		slog.Info("Создание новой конфигурации")
-		return GetByIdOne(conf)
-	}
-	if err != nil {
-		return Conf{}, err
-	}
-	*/
-	return Conf{}, nil
-}
-
-// Если нет конфигурации с ID = 1, то создаем
-func create(conf *config.Config) {
-	/* db := postgresql.DbConnect(conf)
-	defer db.Close()
 	query := fmt.Sprintf(`
-			INSERT INTO %s (%s, %s, %s, %s, %s)
-			VALUES ($1, $2, $3, $4, $5)`,
-		tableName, plus, minus, multiply, divide, maxid)
-	sqlPrepare, err := db.Prepare(query)
-	if err != nil {
-		return
-	}
+		INSERT INTO %s (%s, %s, %s, %s, %s)
+		VALUES ($1, $2, $3, $4, $5)`, tableName, plus, minus, multiply, divide, login)
+	sqlPrepare, err := d.conn.Prepare(query)
 	defer sqlPrepare.Close()
-	sqlPrepare.Query(0, 0, 0, 0, 0) */
+	if err != nil {
+		return err
+	}
+	_, err = sqlPrepare.Query(
+		conf.Plus,
+		conf.Minus,
+		conf.Multiply,
+		conf.Divide,
+		conf.Login,
+	)
+	if err != nil {
+		slog.Info("Не удалось сохранить длительность выполнения операции в базу данных", "ошибка:", err, "конфиг:", conf)
+		return err
+	}
+	return nil
 }
 
-// Загружаем сохраненную конфигурацию во время старта приложения
-// Пытаемся подключиться к базе данных. Если данные будут изменены и потом будет
-// подключена к базе данных, то конфиг будет перезаписан
+func (d *Data) GetAll() ([]Config, error) {
+	var err error
+	for {
+		err = d.conn.Ping()
+		if err == nil {
+			break
+		}
+		time.Sleep(5 * time.Second)
+	}
+	query := fmt.Sprintf("SELECT %s, %s, %s, %s, %s FROM %s", plus, minus, multiply, divide, login, tableName)
+	rows, err := d.conn.Query(query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var configs []Config
+	for rows.Next() {
+		var conf Config
+		if err := rows.Scan(&conf.Plus, &conf.Minus, &conf.Multiply, &conf.Divide, &conf.Login); err != nil {
+			slog.Error("Не удалось получить конфиг из базы данных", "ошибка:", err)
+			return nil, err
+		}
+		configs = append(configs, conf)
+	}
+	return configs, nil
+}

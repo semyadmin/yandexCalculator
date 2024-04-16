@@ -9,7 +9,7 @@ import (
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/config"
 	grpcserver "github.com/adminsemy/yandexCalculator/Orchestrator/internal/grpc_server"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/http/server"
-	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/services/expression"
+	loadfromdb "github.com/adminsemy/yandexCalculator/Orchestrator/internal/services/load_from_db"
 	sendtocalculate "github.com/adminsemy/yandexCalculator/Orchestrator/internal/services/send_to_calculate"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/storage/memory"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/tasks/queue"
@@ -24,8 +24,8 @@ func main() {
 	userStorage := memory.NewUserStorage(conf)
 	// Создаем новую очередь
 	newQueue := queue.NewMapQueue(queue.NewLockFreeQueue(), conf)
-	// Загружаем выражения из базы
-	expression.LoadFromDb(conf, storage, newQueue, userStorage)
+	// Загружаем все из базы
+	loadfromdb.LoadFromDB(conf, storage, userStorage, newQueue)
 	// Запускаем GRPC сервер
 	ctx, cancel := context.WithCancel(context.Background())
 	grpcServer := grpcserver.NewServerGRPC(conf, sendtocalculate.NewSendToCalculate(newQueue))

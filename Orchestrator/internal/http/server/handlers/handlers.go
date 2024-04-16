@@ -30,7 +30,7 @@ func NewServeMux(config *config.Config,
 	// Аутентификация
 	serveMux.HandleFunc("/api/v1/auth", authHandler(userStorage, config))
 	// Установка продолжительности работы выражений
-	serveMux.HandleFunc("/duration", authMiddleware(durationHandler(userStorage)))
+	serveMux.HandleFunc("/duration", authMiddleware(durationHandler(config, userStorage)))
 	// Получение выражения
 	serveMux.HandleFunc("/expression", authMiddleware(expressionHandler(config, queue, storage, userStorage)))
 	// Отдаем все сохраненные выражения
@@ -175,7 +175,7 @@ func getExpressionsHandler(storage *memory.Storage) http.HandlerFunc {
 }
 
 // Обрабатываем входящее время и возвращаем
-func durationHandler(userStorage *memory.UserStorage) http.HandlerFunc {
+func durationHandler(conf *config.Config, userStorage *memory.UserStorage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Обрабатываем входящее время
 		auth := r.Header.Get("Authorization")
@@ -188,7 +188,7 @@ func durationHandler(userStorage *memory.UserStorage) http.HandlerFunc {
 				return
 			}
 			slog.Info("Полученное время для операций от пользователя:", "данные:", string(data))
-			data, err = duration.ChangeDuration(data, token[1], userStorage)
+			data, err = duration.ChangeDuration(conf, data, token[1], userStorage)
 			if err != nil {
 				slog.Error("Невозможно сериализовать данные:", "ошибка:", err)
 				http.Error(w, err.Error(), http.StatusInternalServerError)
