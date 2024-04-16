@@ -10,6 +10,7 @@ import (
 
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/config"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/entity"
+	responseexpression "github.com/adminsemy/yandexCalculator/Orchestrator/internal/services/response_expression"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/storage/memory"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/storage/postgresql/postgresql_expression"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/tasks/queue"
@@ -128,7 +129,7 @@ func (a *ASTTree) calc() {
 		a.expression.IsCalc = true
 	}
 	a.Unlock()
-	resp := entity.NewResponseExpression(a.expression.ID, a.expression.Expression, a.expression.Start, a.expression.Duration, a.IsCalc, a.expression.Result, a.Err)
+	resp := responseexpression.NewResponseExpression(a.expression.ID, a.expression.Expression, a.expression.Start, a.expression.Duration, a.IsCalc, a.expression.Result, a.Err)
 	answer, err := json.Marshal(resp)
 	if err != nil {
 		slog.Error("Проблема с формированием ответа", "ошибка:", err)

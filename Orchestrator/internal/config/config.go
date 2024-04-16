@@ -2,6 +2,7 @@ package config
 
 import (
 	"context"
+	"log/slog"
 	"os"
 	"sync"
 	"sync/atomic"
@@ -13,7 +14,6 @@ import (
 
 // Config - конфигурация приложения
 type Config struct {
-	Id          int64
 	Host        string
 	HttpPort    string
 	TCPPort     string
@@ -37,8 +37,11 @@ type Workers struct {
 	Expressions []string `json:"expressions"`
 }
 
-func New() *Config {
-	godotenv.Load("./config/.env")
+func New(confFile string) *Config {
+	err := godotenv.Load(confFile)
+	if err != nil {
+		slog.Error("Failed to load .env file", err)
+	}
 	httpPort := os.Getenv("ORCHESTRATOR_HTTP_PORT")
 	tcpPort := os.Getenv("ORCHESTRATOR_TCP_PORT")
 	db := os.Getenv("ORCHESTRATOR_DB")

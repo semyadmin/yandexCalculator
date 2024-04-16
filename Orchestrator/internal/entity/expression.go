@@ -4,8 +4,10 @@ import (
 	"errors"
 	"strings"
 	"time"
+)
 
-	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/tasks/upgrade"
+const (
+	errInvalidExpression = "invalid expression"
 )
 
 type Expression struct {
@@ -20,23 +22,24 @@ type Expression struct {
 	User                 string
 }
 
-func NewExpression(exp string, calcExp string, validator func(string) bool, user string) *Expression {
+func NewExpression(exp string,
+	calcExp string,
+	validator func(string) bool,
+	user string,
+	start time.Time,
+	updater func([]byte) []byte,
+) *Expression {
 	exp = strings.ReplaceAll(exp, " ", "")
-	if !validator(exp) {
-		return &Expression{
-			Expression:           exp,
-			CalculatedExpression: string(upgrade.Upgrade([]byte(exp))),
-			Err:                  errors.New("invalid expression"),
-			Start:                time.Now(),
-			User:                 user,
-		}
-	}
-	return &Expression{
+	newExp := &Expression{
 		Expression:           exp,
-		CalculatedExpression: string(upgrade.Upgrade([]byte(exp))),
-		Start:                time.Now(),
+		CalculatedExpression: string(updater([]byte(calcExp))),
+		Start:                start,
 		User:                 user,
 	}
+	if !validator(exp) {
+		newExp.Err = errors.New(errInvalidExpression)
+	}
+	return newExp
 }
 
 func (e *Expression) SetResult(r float64, err error) {

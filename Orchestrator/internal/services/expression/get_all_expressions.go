@@ -10,6 +10,7 @@ import (
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/config"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/entity"
 	jwttoken "github.com/adminsemy/yandexCalculator/Orchestrator/internal/services/jwt_token"
+	responseexpression "github.com/adminsemy/yandexCalculator/Orchestrator/internal/services/response_expression"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/storage/memory"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/storage/postgresql/postgresql_expression"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/tasks/arithmetic"
@@ -26,7 +27,7 @@ func GetAllExpressions(storage *memory.Storage, token string) []entity.ResponseE
 	allExpressions := storage.GetAll(name)
 	result := make([]entity.ResponseExpression, len(allExpressions))
 	for i, expression := range allExpressions {
-		result[i] = entity.NewResponseExpression(expression.ID, expression.Expression, expression.Start, expression.Duration, expression.IsCalc, expression.Result, expression.Err)
+		result[i] = responseexpression.NewResponseExpression(expression.ID, expression.Expression, expression.Start, expression.Duration, expression.IsCalc, expression.Result, expression.Err)
 	}
 	return result
 }
@@ -61,7 +62,7 @@ func LoadFromDb(
 			arithmetic.NewASTTree(newExp, conf, queue, userStorage)
 		}
 		slog.Info("Загружено выражение:", "выражение", newExp)
-		resp := entity.NewResponseExpression(
+		resp := responseexpression.NewResponseExpression(
 			newExp.ID,
 			newExp.Expression,
 			newExp.Start,

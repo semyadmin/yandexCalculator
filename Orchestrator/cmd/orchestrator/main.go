@@ -17,7 +17,7 @@ import (
 
 func main() {
 	// Создаем конфигурацию
-	conf := config.New()
+	conf := config.New("config/.env")
 	// Создаем сторадж для хранения выражений в памяти
 	storage := memory.New(conf)
 	// Создаем сторадж для хранения пользователей в памяти

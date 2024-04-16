@@ -17,7 +17,7 @@ func TestNewASTTree(t *testing.T) {
 		userStorage *memory.UserStorage
 		validator   func(string) bool
 	}
-	conf := config.New()
+	conf := config.New(".env")
 	q := queue.NewMapQueue(queue.NewLockFreeQueue(), conf)
 	tests := []struct {
 		name    string

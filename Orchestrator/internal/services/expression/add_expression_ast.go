@@ -4,14 +4,17 @@ import (
 	"encoding/json"
 	"errors"
 	"log/slog"
+	"time"
 
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/config"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/entity"
 	jwttoken "github.com/adminsemy/yandexCalculator/Orchestrator/internal/services/jwt_token"
+	responseexpression "github.com/adminsemy/yandexCalculator/Orchestrator/internal/services/response_expression"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/storage/memory"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/storage/postgresql/postgresql_expression"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/tasks/arithmetic"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/tasks/queue"
+	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/tasks/upgrade"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/validator"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/web_socket/client"
 )
@@ -38,7 +41,7 @@ func NewExpression(conf *config.Config,
 	var resp entity.ResponseExpression
 	if errors.Is(err, memory.ErrExpressionNotExists) {
 
-		exp = entity.NewExpression(expression, "", validator.Validator, user)
+		exp = entity.NewExpression(expression, "", validator.Validator, user, time.Now(), upgrade.Upgrade)
 		conf.Lock()
 		conf.MaxID++
 		nextId := conf.MaxID
@@ -67,7 +70,7 @@ func NewExpression(conf *config.Config,
 		}
 		go conf.Db.Expression.Add(expDb)
 
-		resp = entity.NewResponseExpression(exp.ID, exp.Expression, exp.Start, exp.Duration, exp.IsCalc, exp.Result, exp.Err)
+		resp = responseexpression.NewResponseExpression(exp.ID, exp.Expression, exp.Start, exp.Duration, exp.IsCalc, exp.Result, exp.Err)
 
 	}
 	data, e := json.Marshal(resp)
