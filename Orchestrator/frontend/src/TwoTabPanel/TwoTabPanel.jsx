@@ -80,7 +80,7 @@ export default function TwoTabPanel(props) {
       .then((response) => {
           setPlus(response.data.plus)
           setMinus(response.data.minus)
-          setMulti(response.data.multi)
+          setMulti(response.data.multiply)
           setDivide(response.data.divide)
           setOpenSuccess(false)
           setTextSnackbarSuccess(`Данные успешно загружены на сервер`)

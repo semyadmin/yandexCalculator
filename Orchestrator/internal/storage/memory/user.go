@@ -62,6 +62,7 @@ func (u *UserStorage) SetConfig(user string, config *entity.Config) error {
 	u.Lock()
 	defer u.Unlock()
 	if _, ok := u.users[user]; !ok {
+		slog.Info("Пользователь не найден для этой конфигурации", "пользователь:", user, "конфигурация:", config)
 		return errors.New(errUserNotExists)
 	}
 	slog.Info("Сохранена конфигурация пользователя", "пользователь:", user, "конфигурация:", config)
