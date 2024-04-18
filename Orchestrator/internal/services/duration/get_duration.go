@@ -4,10 +4,9 @@ import (
 	"encoding/json"
 
 	jwttoken "github.com/adminsemy/yandexCalculator/Orchestrator/internal/services/jwt_token"
-	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/storage/memory"
 )
 
-func GetDuration(token string, userStorage *memory.UserStorage) ([]byte, error) {
+func GetDuration(token string, userStorage UserStorage) ([]byte, error) {
 	user, err := jwttoken.ParseToken(token)
 	if err != nil {
 		return nil, err

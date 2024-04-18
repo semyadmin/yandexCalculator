@@ -11,7 +11,6 @@ import (
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/config"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/entity"
 	responseexpression "github.com/adminsemy/yandexCalculator/Orchestrator/internal/services/response_expression"
-	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/storage/memory"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/storage/postgresql/postgresql_expression"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/tasks/queue"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/web_socket/client"
@@ -25,9 +24,9 @@ type ASTTree struct {
 	Value       float64
 	IsCalc      bool
 	IsParent    bool
-	queue       *queue.MapQueue
+	queue       Queue
 	config      *config.Config
-	userStorage *memory.UserStorage
+	userStorage UserStorage
 	Err         error
 	sync.Mutex
 }
@@ -40,8 +39,8 @@ type result struct {
 // Создаем AST дерево из выражения
 func NewASTTree(expression *entity.Expression,
 	config *config.Config,
-	queue *queue.MapQueue,
-	userStorage *memory.UserStorage,
+	queue Queue,
+	userStorage UserStorage,
 ) (*ASTTree, error) {
 	if expression.Err != nil {
 		return nil, nil

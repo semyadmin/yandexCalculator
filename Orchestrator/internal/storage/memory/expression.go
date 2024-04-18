@@ -53,7 +53,7 @@ func (s *Storage) GeByExpression(expression string, user string) (*entity.Expres
 }
 
 // Ищем в памяти выражение по ID
-func (s *Storage) GeById(id uint64, user string) (*entity.Expression, error) {
+func (s *Storage) GetById(id uint64, user string) (*entity.Expression, error) {
 	s.mutex.Lock()
 	data, ok := s.exists[id]
 	s.mutex.Unlock()

@@ -5,10 +5,9 @@ import (
 
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/config"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/entity"
-	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/storage/memory"
 )
 
-func LoadFromDB(conf *config.Config, userStorage *memory.UserStorage) error {
+func LoadFromDB(conf *config.Config, userStorage UserStorage) error {
 	allConfigs, err := conf.Db.Config.GetAll()
 	if err != nil {
 		return err

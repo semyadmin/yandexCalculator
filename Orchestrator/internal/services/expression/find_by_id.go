@@ -7,10 +7,9 @@ import (
 
 	jwttoken "github.com/adminsemy/yandexCalculator/Orchestrator/internal/services/jwt_token"
 	responseexpression "github.com/adminsemy/yandexCalculator/Orchestrator/internal/services/response_expression"
-	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/storage/memory"
 )
 
-func GetById(storage *memory.Storage, number string, token string) ([]byte, error) {
+func GetById(storage Storage, number string, token string) ([]byte, error) {
 	user, err := jwttoken.ParseToken(token)
 	if err != nil {
 		return nil, err
@@ -20,7 +19,7 @@ func GetById(storage *memory.Storage, number string, token string) ([]byte, erro
 		slog.Error("Невозможно распарсить ID:", "ОШИБКА:", err)
 		return nil, err
 	}
-	exp, err := storage.GeById(id, user)
+	exp, err := storage.GetById(id, user)
 	if err != nil {
 		slog.Error("Невозможно получить данные по ID:", "ОШИБКА:", err, "ID:", id)
 		return nil, err

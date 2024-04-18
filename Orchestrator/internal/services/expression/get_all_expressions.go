@@ -11,14 +11,12 @@ import (
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/entity"
 	jwttoken "github.com/adminsemy/yandexCalculator/Orchestrator/internal/services/jwt_token"
 	responseexpression "github.com/adminsemy/yandexCalculator/Orchestrator/internal/services/response_expression"
-	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/storage/memory"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/storage/postgresql/postgresql_expression"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/tasks/arithmetic"
-	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/tasks/queue"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/web_socket/client"
 )
 
-func GetAllExpressions(storage *memory.Storage, token string) []entity.ResponseExpression {
+func GetAllExpressions(storage StorageGetAll, token string) []entity.ResponseExpression {
 	name, err := jwttoken.ParseToken(token)
 	if err != nil {
 		slog.Error("Невозможно расшифровать токен:", "ОШИБКА:", err)
@@ -34,9 +32,9 @@ func GetAllExpressions(storage *memory.Storage, token string) []entity.ResponseE
 
 func LoadFromDb(
 	conf *config.Config,
-	storage *memory.Storage,
-	queue *queue.MapQueue,
-	userStorage *memory.UserStorage,
+	storage Storage,
+	queue Queue,
+	userStorage UserStorage,
 ) {
 	exp := make(chan postgresql_expression.Expression)
 	conf.Db.Expression.GetAll(exp)

@@ -3,6 +3,7 @@ package expression
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log/slog"
 	"time"
 
@@ -19,6 +20,8 @@ import (
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/web_socket/client"
 )
 
+var ErrExpressionNotExists = errors.New("Выражение не существует")
+
 type NewExpressionAst struct {
 	conf    *config.Config
 	storage *memory.Storage
@@ -26,22 +29,23 @@ type NewExpressionAst struct {
 }
 
 func NewExpression(conf *config.Config,
-	storage *memory.Storage,
-	queue *queue.MapQueue,
+	storage Storage,
+	queue Queue,
 	expression string,
 	token string,
-	userStorage *memory.UserStorage,
+	userStorage UserStorage,
+	now time.Time,
 ) ([]byte, error) {
+	var resp entity.ResponseExpression
 	user, err := jwttoken.ParseToken(token)
 	if err != nil {
 		slog.Error("Невозможно распарсить токен:", "ОШИБКА:", err)
 		return nil, err
 	}
 	exp, err := storage.GeByExpression(expression, user)
-	var resp entity.ResponseExpression
 	if errors.Is(err, memory.ErrExpressionNotExists) {
-
-		exp = entity.NewExpression(expression, "", validator.Validator, user, time.Now(), upgrade.Upgrade)
+		exp = entity.NewExpression(expression, expression, validator.Validator, user, now, upgrade.Upgrade)
+		fmt.Println(exp)
 		conf.Lock()
 		conf.MaxID++
 		nextId := conf.MaxID
@@ -70,9 +74,11 @@ func NewExpression(conf *config.Config,
 		}
 		go conf.Db.Expression.Add(expDb)
 
-		resp = responseexpression.NewResponseExpression(exp.ID, exp.Expression, exp.Start, exp.Duration, exp.IsCalc, exp.Result, exp.Err)
-
 	}
+	if exp == nil {
+		return nil, ErrExpressionNotExists
+	}
+	resp = responseexpression.NewResponseExpression(exp.ID, exp.Expression, exp.Start, exp.Duration, exp.IsCalc, exp.Result, exp.Err)
 	data, e := json.Marshal(resp)
 	if e != nil {
 		return nil, e

@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/config"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/services/duration"
@@ -146,6 +147,7 @@ func expressionHandler(config *config.Config,
 				string(data),
 				token[1],
 				userStorage,
+				time.Now(),
 			)
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
