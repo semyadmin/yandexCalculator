@@ -28,7 +28,7 @@ func TestGetAllExpressions(t *testing.T) {
 		storage StorageGetAll
 		token   string
 	}
-	token, _ := jwttoken.GenerateToken("test")
+	token, _ := jwttoken.GenerateToken("test", 15)
 	tests := []struct {
 		name string
 		args args

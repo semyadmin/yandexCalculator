@@ -14,7 +14,7 @@ export default function TwoTabPanel(props) {
   const [textSnackbarSuccess, setTextSnackbarSuccess] = React.useState('')
   const [textSnackbarError, setTextSnackbarError] = React.useState('')
   const [openError, setOpenError] = React.useState(false);
-  const { value, index, client, isLogin } = props;
+  const { value, index, client, isLogin, setIsLogin } = props;
   const [plus, setPlus] = React.useState(0);
   const [minus, setMinus] = React.useState(0);
   const [multiply, setMulti] = React.useState(0);
@@ -50,6 +50,12 @@ export default function TwoTabPanel(props) {
             setMinus(response.data.minus)
             setMulti(response.data.multiply)
             setDivide(response.data.divide)
+          }).catch(error => {
+            if (error.response.status === 401) {
+              setIsLogin(false)
+              setOpenError(true)
+              return
+            }
           })
       }
       getOperators()
@@ -87,6 +93,11 @@ export default function TwoTabPanel(props) {
           setOpenSuccess(true)
       })
       .catch(error => {
+        if (error.response.status == 401) {
+          setIsLogin(false)
+          setOpenError(true)
+          return
+        }
         console.log(error)
         setTextSnackbarError(`Введенные данные некорректны!`)
         setOpenError(true)

@@ -44,7 +44,7 @@ func (s *StorageMockGetByIdNotFound) GeByExpression(string, string) (*entity.Exp
 }
 
 func TestGetById(t *testing.T) {
-	token, _ := jwttoken.GenerateToken("test")
+	token, _ := jwttoken.GenerateToken("test", 15)
 	validEnt := entity.NewExpression("2+2", "2+2", validator.Validator, "test", time.Now(), upgrade.Upgrade)
 	validEntMarshal, _ := json.Marshal(responseexpression.NewResponseExpression(
 		validEnt.ID,

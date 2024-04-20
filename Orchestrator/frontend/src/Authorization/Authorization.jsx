@@ -30,6 +30,8 @@ export default function Authorization(props) {
     if (isLogin) {
       setOpen(false);
     } else {
+      setUser("");
+      sessionStorage.clear();
       setOpen(true);
     }
   },[isLogin])
@@ -38,8 +40,6 @@ export default function Authorization(props) {
   };
 
   const handleClickExit = () => {
-    setUser("");
-    sessionStorage.clear();
     setIsLogin(false);
   };
 

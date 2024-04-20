@@ -49,7 +49,7 @@ func TestGetDuration(t *testing.T) {
 		token       string
 		userStorage UserStorage
 	}
-	token, _ := jwttoken.GenerateToken("test")
+	token, _ := jwttoken.GenerateToken("test", 15)
 	tests := []struct {
 		name    string
 		args    args

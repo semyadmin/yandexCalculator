@@ -42,12 +42,12 @@ func User(userStorage *memory.UserStorage, data []byte, conf *config.Config) (st
 			Login:    user.Login,
 			Password: user.Password,
 		})
-		return jwttoken.GenerateToken(user.Login)
+		return jwttoken.GenerateToken(user.Login, conf.TokenLimit)
 	}
 	if foundUser.User.Password != hashPassword(user.Password) {
 		return "", errors.New(errLoginOrPassword)
 	}
-	return jwttoken.GenerateToken(foundUser.User.Login)
+	return jwttoken.GenerateToken(foundUser.User.Login, conf.TokenLimit)
 }
 
 func hashPassword(password string) string {

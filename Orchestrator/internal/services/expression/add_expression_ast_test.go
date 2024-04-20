@@ -104,7 +104,7 @@ func TestNewExpression(t *testing.T) {
 		userStorage UserStorage
 		now         time.Time
 	}
-	token, _ := jwttoken.GenerateToken("test")
+	token, _ := jwttoken.GenerateToken("test", 15)
 	rightStorageMarshal, _ := json.Marshal(responseexpression.NewResponseExpression(
 		rightStorage.ID,
 		rightStorage.Expression,

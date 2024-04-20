@@ -35,8 +35,8 @@ import Authorization from '../Authorization/Authorization';
             <Tab label="Мониторинг рабочих агентов"  />
           </Tabs>
         </Box>
-        <CustomTabPanel value={value} index={0} client={client} isLogin={isLogin}/>
-        <TwoTabPanel value={value} index={1} client={client} isLogin={isLogin} />
+        <CustomTabPanel value={value} index={0} client={client} isLogin={isLogin} setIsLogin={setIsLogin}/>
+        <TwoTabPanel value={value} index={1} client={client} isLogin={isLogin} setIsLogin={setIsLogin} />
         <ThreeTabPanel value={value} index={2} client={client} />
       </Box>
     );

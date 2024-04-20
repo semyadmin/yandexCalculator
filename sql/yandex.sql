@@ -15,7 +15,7 @@ CREATE TABLE Configs (
     Minus BIGINT,
     Multiply BIGINT,
     Divide BIGINT,
-    MaxID BIGINT
+    Login text NOT NULL
 );
 
 CREATE TABLE Users (

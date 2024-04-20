@@ -12,7 +12,7 @@ import BasicTable from './BasicTable/BasicTable';
 
 
 export default function CustomTabPanel(props) {
-  const { value, index, client, isLogin } = props;
+  const { value, index, client, isLogin, setIsLogin } = props;
   const [openSuccess, setOpenSuccess] = React.useState(false);
   const [textSnackbarSuccess, setTextSnackbarSuccess] = React.useState('')
   const [textSnackbarError, setTextSnackbarError] = React.useState('')
@@ -57,6 +57,15 @@ export default function CustomTabPanel(props) {
             })
             setAnswer([...answer])
           }
+        }).catch(error => {
+          if (error.response.status === 401) {
+            setOpenError(true)
+            setIsLogin(false)
+            setTextSnackbarError(`Ваша сессия истекла!`)
+            return
+          }
+          setTextSnackbarError(`Введенные данные некорректны!`)
+          setOpenError(true)
         })
       
     } else {
@@ -123,7 +132,18 @@ export default function CustomTabPanel(props) {
         }
       }).then(() => {
         setTextValue("")
+      }).catch(error => {
+        if (error.response.status === 401) {
+          setIsLogin(false)
+          setOpenError(true)
+          setTextSnackbarError(`Ваша сессия истекла!`)
+          return
+        }
+        setTextSnackbarError(`Введенные данные некорректны!`)
+        console.log(error)
+        setOpenError(true)
       })
+      setTextValue("")
   }
   const handleCloseSuccess = (event, reason) => {
     if (reason === 'clickaway') {

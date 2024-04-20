@@ -39,7 +39,7 @@ func TestChangeDuration(t *testing.T) {
 		userStorage UserStorage
 	}
 	conf := config.New("../../../config/.env")
-	token, _ := jwttoken.GenerateToken("test")
+	token, _ := jwttoken.GenerateToken("test", conf.TokenLimit)
 
 	testDuration := entity.Config{
 		Plus:     10,

@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 	"os"
+	"strconv"
 	"sync"
 	"sync/atomic"
 
@@ -23,6 +24,7 @@ type Config struct {
 	Multiply    int64
 	Divide      int64
 	MaxID       uint64
+	TokenLimit  uint64
 	AgentsAll   atomic.Int64
 	WorkersAll  atomic.Int64
 	WorkersBusy atomic.Int64
@@ -50,6 +52,7 @@ func New(confFile string) *Config {
 	dbUser := os.Getenv("ORCHESTRATOR_DB_USER")
 	dbPassword := os.Getenv("ORCHESTRATOR_DB_PASSWORD")
 	host := os.Getenv("ORCHESTRATOR_HOST")
+	tokenLimit := os.Getenv("ORCHESTRATOR_TOKEN_LIMIT")
 	if httpPort == "" {
 		httpPort = "8080"
 	}
@@ -74,11 +77,16 @@ func New(confFile string) *Config {
 	if host == "" {
 		host = "localhost"
 	}
+	if tokenLimit == "" {
+		tokenLimit = "15"
+	}
+	t, _ := strconv.ParseUint(tokenLimit, 10, 64)
 	return &Config{
-		Host:      host,
-		HttpPort:  httpPort,
-		TCPPort:   tcpPort,
-		Db:        postgresql.NewPostgresConnect(db, dbPort, dbUser, dbPassword, dbName),
-		WSmanager: manager.NewManager(context.Background()),
+		Host:       host,
+		HttpPort:   httpPort,
+		TCPPort:    tcpPort,
+		TokenLimit: t,
+		Db:         postgresql.NewPostgresConnect(db, dbPort, dbUser, dbPassword, dbName),
+		WSmanager:  manager.NewManager(context.Background()),
 	}
 }

@@ -12,6 +12,7 @@ import (
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/services/duration"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/services/expression"
 	newexpression "github.com/adminsemy/yandexCalculator/Orchestrator/internal/services/expression"
+	jwttoken "github.com/adminsemy/yandexCalculator/Orchestrator/internal/services/jwt_token"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/services/user"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/storage/memory"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/tasks/queue"
@@ -22,6 +23,7 @@ func NewServeMux(config *config.Config,
 	storage *memory.Storage,
 	userStorage *memory.UserStorage,
 ) (http.Handler, error) {
+	login := ""
 	// Создам маршрутизатор
 	serveMux := http.NewServeMux()
 	// Регистрируем обработчики событий
@@ -31,18 +33,38 @@ func NewServeMux(config *config.Config,
 	// Аутентификация
 	serveMux.HandleFunc("/api/v1/auth", authHandler(userStorage, config))
 	// Установка продолжительности работы выражений
-	serveMux.HandleFunc("/duration", authMiddleware(durationHandler(config, userStorage)))
+	serveMux.HandleFunc("/duration", authMiddleware(durationHandler(config, userStorage), &login))
 	// Получение выражения
-	serveMux.HandleFunc("/expression", authMiddleware(expressionHandler(config, queue, storage, userStorage)))
+	serveMux.HandleFunc("/expression", authMiddleware(expressionHandler(config, queue, storage, userStorage), &login))
 	// Отдаем все сохраненные выражения
-	serveMux.HandleFunc("/getexpressions", authMiddleware(getExpressionsHandler(storage)))
+	serveMux.HandleFunc("/getexpressions", authMiddleware(getExpressionsHandler(storage), &login))
 	// Получение выражения по ID
-	serveMux.HandleFunc("/id/", authMiddleware(getById(storage)))
+	serveMux.HandleFunc("/id/", authMiddleware(getById(storage), &login))
 	// Регистрируем обработчики для воркеров
 	serveMux.HandleFunc("/workers", getWorkers(config, queue))
 	// Регистрируем обработчики WebSocket для выражений
 	serveMux.HandleFunc("/ws", serveWS(config))
 	return serveMux, nil
+}
+
+func authMiddleware(next http.HandlerFunc, login *string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		auth := r.Header.Get("Authorization")
+		token := strings.Split(auth, " ")
+		if len(token) != 2 || token[0] != "Bearer" {
+			slog.Error("Неверные данные для аутентификации", "Токен:", token)
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+		l, err := jwttoken.ParseToken(token[1])
+		if err != nil {
+			slog.Error("Неверные данные для аутентификации", "Токен:", token)
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+		*login = l
+		next.ServeHTTP(w, r)
+	}
 }
 
 func authHandler(userStorage *memory.UserStorage, conf *config.Config) http.HandlerFunc {
@@ -60,19 +82,6 @@ func authHandler(userStorage *memory.UserStorage, conf *config.Config) http.Hand
 			return
 		}
 		w.Write([]byte(token))
-	}
-}
-
-func authMiddleware(next http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		auth := r.Header.Get("Authorization")
-		token := strings.Split(auth, " ")
-		if len(token) != 2 || token[0] != "Bearer" {
-			slog.Error("Неверные данные для аутентификации", "Токен:", token)
-			http.Error(w, "Unauthorized", http.StatusUnauthorized)
-			return
-		}
-		next.ServeHTTP(w, r)
 	}
 }
 
