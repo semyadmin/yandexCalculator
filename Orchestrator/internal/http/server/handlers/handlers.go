@@ -69,19 +69,21 @@ func authMiddleware(next http.HandlerFunc, login *string) http.HandlerFunc {
 
 func authHandler(userStorage *memory.UserStorage, conf *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		data, err := io.ReadAll(r.Body)
-		if err != nil {
-			slog.Error("Проблема с чтением данных:", "ОШИБКА:", err)
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
+		if r.Method == http.MethodPost {
+			data, err := io.ReadAll(r.Body)
+			if err != nil {
+				slog.Error("Проблема с чтением данных:", "ОШИБКА:", err)
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				return
+			}
+			token, err := user.User(userStorage, data, conf)
+			if err != nil {
+				slog.Error("Невозможно добавить пользователя:", "ОШИБКА:", err)
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			w.Write([]byte(token))
 		}
-		token, err := user.User(userStorage, data, conf)
-		if err != nil {
-			slog.Error("Невозможно добавить пользователя:", "ОШИБКА:", err)
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		w.Write([]byte(token))
 	}
 }
 
