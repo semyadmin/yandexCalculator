@@ -2,9 +2,10 @@ package upgrade
 
 // Обновление выражения с добавлением скобок
 func Upgrade(exp []byte) []byte {
-	exp = updateDoubleMinus(exp)
+	exp = upgradePlusMinus(exp)
 	exp = upgradeMultiDivide(exp)
-	return upgradePlusMinus(exp)
+	exp = updateDoubleMinus(exp)
+	return exp
 }
 
 // Добавляем скобки в умножение и деление

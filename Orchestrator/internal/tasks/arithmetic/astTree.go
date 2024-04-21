@@ -12,7 +12,6 @@ import (
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/entity"
 	responseexpression "github.com/adminsemy/yandexCalculator/Orchestrator/internal/services/response_expression"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/storage/postgresql/postgresql_expression"
-	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/tasks/queue"
 	"github.com/adminsemy/yandexCalculator/Orchestrator/internal/web_socket/client"
 )
 
@@ -51,6 +50,7 @@ func NewASTTree(expression *entity.Expression,
 		return nil, err
 	}
 	// Преобразуем AST дерево в нашу структуру ASTTree
+
 	a := create(tr)
 	a.expression = expression
 	a.queue = queue
@@ -65,7 +65,8 @@ func NewASTTree(expression *entity.Expression,
 func NewASTTreeDB(
 	expression *entity.Expression,
 	config *config.Config,
-	queue *queue.MapQueue,
+	queue Queue,
+	userStorage UserStorage,
 ) (*ASTTree, error) {
 	tr, err := parser.ParseExpr(expression.CalculatedExpression)
 	if err != nil {
@@ -107,7 +108,7 @@ func create(tr ast.Expr) *ASTTree {
 
 // Вычисляем выражение
 func (a *ASTTree) calc() {
-	if a.IsCalc || a.Err != nil || a == nil {
+	if a == nil || a.IsCalc || a.Err != nil {
 		return
 	}
 	var err error

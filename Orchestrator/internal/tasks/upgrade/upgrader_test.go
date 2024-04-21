@@ -250,3 +250,29 @@ func Test_upgradeDoubleMinus(t *testing.T) {
 		})
 	}
 }
+
+func TestUpgrade(t *testing.T) {
+	type args struct {
+		exp []byte
+	}
+	tests := []struct {
+		name string
+		args args
+		want []byte
+	}{
+		{
+			name: "mix",
+			args: args{
+				exp: []byte("5*9+8*6-9+7-11+333"),
+			},
+			want: []byte("(5*9)+(8*6)+(-9+7)+(-11+333)"),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := Upgrade(tt.args.exp); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Upgrade() = %v, want %v", string(got), string(tt.want))
+			}
+		})
+	}
+}
