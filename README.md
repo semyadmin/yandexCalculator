@@ -75,7 +75,7 @@ https://github.com/adminsemy/yandexCalculator/archive/refs/heads/main.zip
 
 и раcпаковываем в любую папку.
 
-Далее переходим в коревую папку и запускаем команду.
+Далее переходим в коревую папку yandexCalculator и запускаем команду.
 
     docker compose up
 
